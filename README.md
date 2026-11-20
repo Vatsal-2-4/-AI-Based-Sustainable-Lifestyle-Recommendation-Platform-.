@@ -1,0 +1,273 @@
+# AI-Based Sustainable Lifestyle Recommendation Platform
+
+A Streamlit project that helps people explore how daily lifestyle choices relate to their estimated carbon footprint and discover practical sustainability actions. The prototype combines a lifestyle questionnaire, category based footprint view, ranked sample recommendations, and goal tracking in a clean, responsive interface.
+
+> **Project status:** Academic prototype/demo. The current interface uses sample data. Emission factor and action catalogue CSVs contain placeholder values and sources and must be verified before using the estimates as real-world guidance. Login and registration are visual demo flows and do not provide secure account authentication.
+
+## Contents
+
+- [Project overview](#project-overview)
+- [Problem](#problem)
+- [Objectives](#objectives)
+- [Features](#features)
+- [System architecture](#system-architecture)
+- [Data flow](#data-flow)
+- [Technology stack](#technology-stack)
+- [Project structure](#project-structure)
+- [Getting started](#getting-started)
+- [How to use the demo](#how-to-use-the-demo)
+- [Data and calculation notes](#data-and-calculation-notes)
+- [Current limitations](#current-limitations)
+- [Roadmap](#roadmap)
+- [Academic alignment](#academic-alignment)
+- [Contributing](#contributing)
+
+## Project overview
+
+The AI-Based Sustainable Lifestyle Recommendation Platform is a student project concept for turning environmental awareness into manageable personal action. It aims to estimate an individual’s annual greenhouse gas footprint in kilograms of carbon dioxide equivalent (kg CO₂e) across lifestyle categories such as transport, food, household energy, shopping, and waste. It then aims to rank practical actions based on their estimated impact and fit with a person’s budget, housing, location, and preferences.
+
+The intended system uses deterministic, documented calculations for footprint and savings. Machine learning can support content-based action matching, while a language model can provide plain-language explanations grounded in catalogue facts. The model should not invent or calculate the numerical impact values.
+
+## Problem
+
+General sustainability tip lists offer the same advice to everyone. Carbon calculators may provide a total without clear next steps, while habit tracking tools may not explain which actions matter most. Users need an accessible way to understand the major sources of their footprint and identify changes that are both relevant and feasible for their circumstances.
+
+## Objectives
+
+- Estimate an annual lifestyle footprint across multiple categories.
+- Present a category-wise breakdown and explain the assumptions behind estimates.
+- Recommend actions ordered by potential impact and user suitability.
+- Include approximate cost, difficulty, applicability, and evidence for each action.
+- Let users save chosen actions as goals and track progress.
+- Evaluate calculation accuracy, recommendation relevance, usability, and response time.
+
+## Features
+
+### Available in the current UI demo
+
+- **Home page:** project introduction and navigation actions.
+- **Login and registration screen:** interactive demo form; does not authenticate users against a server.
+- **Lifestyle questionnaire:** editable transport, diet, housing, budget, energy, waste, and location fields stored in the Streamlit session.
+- **Dashboard:** sample footprint category chart, sustainability score, summary metrics, and suggested next steps.
+- **Carbon footprint page:** editable activity inputs and illustrative category estimates with a Plotly chart.
+- **Recommendations page:** ranked example actions with fit details and an Add goal interaction.
+- **Progress tracking:** session-based goals, editable progress, completion controls, and a sample trend chart.
+- **Profile page:** displays the current demo profile and links to the questionnaire.
+- **Responsive visual design:** green, white, and neutral palette, shared typography, reusable components, and sidebar navigation.
+
+### Planned product capabilities
+
+- Verified India-relevant emission factors with sources, units, geography, and publication year.
+- Fully integrated footprint and recommendation services using user answers and catalogue data.
+- Persistent profiles, reports, recommendations, and progress in SQLite.
+- Eligibility filtering and transparent weighted ranking.
+- Optional grounded AI explanations with response validation and a deterministic fallback.
+- Evaluation with hand-calculated profiles and usability feedback.
+
+## System architecture
+
+The project uses a simple modular monolith. Streamlit provides the interface, Python modules contain calculation and recommendation logic, CSV files provide the initial catalogue data, and SQLite is the planned local persistence layer. A separate web API or microservice deployment is not required for the mini project.
+
+```mermaid
+flowchart TD
+    U[User] --> UI[Streamlit pages]
+    UI --> V[Input validation]
+    V --> P[Profile data]
+    P --> F[Footprint calculation service]
+    EF[Emission factors dataset] --> F
+    F --> R[Footprint breakdown]
+    R --> RF[Action eligibility filtering]
+    AC[Action catalogue] --> RF
+    RF --> RS[Recommendation scoring]
+    RS --> EX[Optional grounded explanation service]
+    EX --> UI
+    UI --> GO[Goal and progress service]
+    GO --> DB[(SQLite database)]
+    P --> DB
+    R --> DB
+```
+
+### Component responsibilities
+
+- **Frontend (`frontend/`):** Streamlit page rendering, navigation, styling, and reusable UI components. It gathers input and displays outputs from application logic.
+- **Backend (`backend/`):** profile data structures, footprint calculations, recommendation ranking, explanation orchestration, progress operations, and data repository access.
+- **Machine learning (`ml/`):** optional feature preparation and content similarity helpers. The first usable recommender can remain rule based and explainable.
+- **Dataset (`dataset/`):** action catalogue and emission factor source files. Values require verification before use for real estimates.
+- **Database (`database/`):** SQLite connection, schema, initializer, and future migration scripts.
+- **Utilities (`utils/`):** shared input validation and logging helpers.
+- **Assets (`assets/`):** images, illustrations, logos, and icons used by the interface.
+
+## Data flow
+
+1. The user enters lifestyle details through the Streamlit questionnaire or calculator.
+2. The application validates units and acceptable ranges.
+3. A footprint service applies appropriate emission factors to activity data and calculates category totals.
+4. The recommendation service removes actions that do not apply to the user, then scores and ranks eligible actions.
+5. An optional explanation service receives selected catalogue facts and generates text. The application validates numeric claims and uses a fixed template if generation is unavailable or invalid.
+6. The interface presents the footprint and action list. User-selected goals and progress updates are saved to SQLite when persistence is connected.
+
+## Technology stack
+
+| Technology | Use |
+|---|---|
+| Python | Application and business logic |
+| Streamlit | Interactive web interface and navigation |
+| pandas | Tabular data and catalogue handling |
+| NumPy | Numerical helpers for analysis and scoring |
+| scikit-learn | Optional text feature vectorization and similarity |
+| Plotly | Interactive charts |
+| SQLite | Lightweight local persistence |
+
+## Project structure
+
+```text
+.
+├── app.py                         # Streamlit entry point
+├── requirements.txt               # Python package dependencies
+├── prd.md                         # Product requirements document
+├── frontend/
+│   ├── main.py                    # Sidebar navigation and page routing
+│   ├── styles.py                  # Shared CSS and session demo defaults
+│   ├── components/common.py       # Reusable metrics and page header
+│   └── pages/
+│       ├── home.py                # Landing page
+│       ├── auth.py                # Login/register demo
+│       ├── questionnaire.py       # Lifestyle inputs
+│       ├── dashboard.py           # Summary metrics and charts
+│       ├── recommendations.py    # Ranked sample actions
+│       ├── calculator.py          # Editable footprint estimate
+│       ├── progress.py            # Goal and progress interface
+│       └── profile.py             # Demo profile view
+├── backend/
+│   ├── models.py                  # Profile data structures
+│   ├── repositories/              # Catalogue and persistence access
+│   └── services/                  # Footprint, recommendations, explanations, progress
+├── ml/models/                     # Feature extraction and similarity helpers
+├── dataset/
+│   ├── actions.csv                # Starter action catalogue schema
+│   ├── emission_factors.csv       # Starter emission factor schema
+│   ├── raw/                       # Original source data
+│   └── processed/                 # Prepared datasets
+├── database/
+│   ├── connection.py              # SQLite connection helper
+│   ├── schema.py                  # Database tables
+│   ├── init_db.py                 # Database initialization command
+│   └── migrations/                # Future schema changes
+├── utils/                         # Validation and logging helpers
+├── assets/                        # Images and icons
+└── tests/                          # Test suite location
+```
+
+## Getting started
+
+### Requirements
+
+- Python 3.10 or newer recommended.
+- pip.
+- Windows PowerShell, macOS Terminal, or a Linux shell.
+
+### 1. Get the project and enter its folder
+
+```bash
+git clone <repository-url>
+cd <repository-folder>
+```
+
+If you already have the project files, open a terminal in the project root (the folder containing `app.py`).
+
+### 2. Create and activate a virtual environment
+
+**Windows PowerShell**
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+```
+
+**macOS or Linux**
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+```
+
+### 3. Install dependencies
+
+```bash
+python -m pip install --upgrade pip
+pip install -r requirements.txt
+```
+
+### 4. Run the Streamlit app
+
+```bash
+streamlit run app.py
+```
+
+Streamlit prints a local URL, normally `http://localhost:8501`, which you can open in a browser. Stop the server with `Ctrl+C` in the terminal.
+
+### Optional: initialize the SQLite schema
+
+```bash
+python -m database.init_db
+```
+
+This creates the local SQLite database file. The current demo UI keeps most state in the Streamlit session and does not yet persist its forms or goals through this database.
+
+## How to use the demo
+
+1. Open **Home** and choose the dashboard or questionnaire.
+2. Enter sample lifestyle details and save the profile.
+3. Review the dashboard and footprint category chart.
+4. Adjust inputs on the carbon footprint page to explore the sample estimate.
+5. Add suggested actions as goals on the Recommendations page.
+6. Update progress or mark goals complete on the Progress tracking page.
+7. Use the sidebar at any time to move between screens.
+
+## Data and calculation notes
+
+The current UI uses illustrative sample values so the pages can be demonstrated before the data pipeline is complete. `dataset/actions.csv` and `dataset/emission_factors.csv` are starter structures with placeholder sources and example values. Before presenting numerical estimates as factual:
+
+- Replace placeholders with authoritative, traceable sources relevant to the intended geography.
+- Store units, geography, source year, and assumptions for each factor.
+- Validate calculations against independently hand-calculated profiles.
+- Label estimates as approximate and avoid implying that they measure verified reductions.
+- Keep numerical values out of LLM-generated content; the model should only explain values supplied by the application.
+
+## Current limitations
+
+- Login/register is a UI demonstration and does not securely create or verify accounts.
+- Profile, form, and goal data are session based and may reset when the session ends.
+- Sample footprint and savings values are not validated environmental measurements.
+- The SQLite schema and backend services are scaffolding and are not yet fully connected to every page.
+- AI explanation generation is a placeholder; connect a provider only after adding secret management, output validation, and fallback behavior.
+- The current content-similarity helper is optional and does not replace eligibility rules or transparent ranking.
+
+## Roadmap
+
+1. Verify and document the emission factor and action catalogue data.
+2. Connect questionnaire data to backend validation and footprint calculation.
+3. Implement and explain eligibility filtering and recommendation scoring.
+4. Persist profiles, footprint reports, goals, and progress in SQLite.
+5. Add grounded AI explanations with validation and a non-AI fallback.
+6. Add tests for calculations, ranking, and persistence.
+7. Evaluate accuracy and usability with representative test profiles and student users.
+8. Refine accessibility, error handling, documentation, and deployment.
+
+## Academic alignment
+
+The project is intended as a third-year B.Tech Artificial Intelligence and Machine Learning mini project. Its technical scope combines data processing, transparent calculation, recommendation ranking, optional content-based similarity, database design, and a user-facing dashboard. It also relates to the United Nations Sustainable Development Goals **12: Responsible Consumption and Production** and **13: Climate Action**. Any evaluation claims should be supported by measured project results.
+
+## Contributing
+
+For a student team, a practical contribution workflow is:
+
+1. Create a branch for one feature or fix.
+2. Keep UI, services, datasets, and database changes in their respective folders.
+3. Document emission factor changes with source, units, geography, and year.
+4. Add tests for calculation or ranking behavior when extending those modules.
+5. Review changes and run the app locally before merging.
+
+## License
+
+No license has been selected yet. Add a `LICENSE` file before distributing or reusing the project outside the team.
