@@ -8,7 +8,7 @@ def initialize_state():
     st.session_state.setdefault("profile", DEFAULT_PROFILE.copy())
     st.session_state.setdefault("goals", [])
     st.session_state.setdefault("authenticated", False)
-    st.session_state.setdefault("page", "Dashboard")
+    st.session_state.setdefault("page", "Home")
     user_id = get_or_create_user(st.session_state.user_email, st.session_state.profile["name"])
     st.session_state.user_id = user_id
     user = get_user(user_id)
@@ -33,16 +33,20 @@ def initialize_state():
             st.session_state.pop("latest_footprint_record_id",None)
         st.session_state.db_latest_footprint_loaded=True
     if not st.session_state.get("db_goals_loaded", False):
-        st.session_state.goals = [{"db_id":row["progress_id"], "title":row["goal_title"], "category":row["category"], "progress":row["progress_percent"]/100, "done":row["status"]=="completed"} for row in get_progress(user_id)]
+        st.session_state.goals = [{"db_id":row["progress_id"], "title":row["goal_title"], "category":row["category"], "progress":row["progress_percent"]/100, "status":row["status"], "done":row["status"]=="completed"} for row in get_progress(user_id)]
         st.session_state.db_goals_loaded = True
 
 def load_styles():
     st.markdown("""<style>
     .stApp{background:#f5f8f5;color:#17231d}
     [data-testid="stSidebar"]{background:#fff;border-right:1px solid #e5ece7}
+    [data-testid="stMainBlockContainer"]{max-width:1440px;padding-top:2rem;padding-bottom:3rem}
     .card{background:#fff;border:1px solid #e5ece7;border-radius:16px;padding:1.2rem;min-height:120px}
     .label{font-size:.78rem;color:#718078;font-weight:700}
     .value{font-size:1.8rem;font-weight:800;color:#17231d;margin:.45rem 0}
     .green{color:#16734a;font-weight:700;font-size:.8rem}
     .tag{background:#e9f5ee;color:#16734a;border-radius:30px;padding:.25rem .6rem;font-size:.75rem;font-weight:700}
+    button:focus-visible,[role="radio"]:focus-visible,input:focus-visible{outline:3px solid #16734a!important;outline-offset:2px}
+    [data-testid="stMetric"]{background:#fff;border:1px solid #e5ece7;border-radius:14px;padding:1rem}
+    @media (max-width: 720px){[data-testid="stMainBlockContainer"]{padding:1rem .85rem 2rem}.card{padding:1rem;min-height:auto}.value{font-size:1.5rem}}
     </style>""", unsafe_allow_html=True)

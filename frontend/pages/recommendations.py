@@ -14,10 +14,12 @@ def _add_goal(action, rank):
         update_recommendation_status(st.session_state.user_id,recommendation_id,"saved")
         if not any(g["title"]==action["title"] for g in st.session_state.goals):
             progress_id=create_progress(st.session_state.user_id,action["title"],action["category"],recommendation_id)
-            st.session_state.goals.append({"db_id":progress_id,"title":action["title"],"category":action["category"],"progress":0.0,"done":False})
+            st.session_state.goals.append({"db_id":progress_id,"title":action["title"],"category":action["category"],"progress":0.0,"status":"active","done":False})
         st.session_state["goal_saved_message"]=f"Saved '{action['title']}' to your goals."
-    except Exception as exc:
+    except ValueError as exc:
         st.session_state["goal_save_error"]=str(exc)
+    except Exception:
+        st.session_state["goal_save_error"]="Could not save this action. Check the local database and try again."
 
 def render():
     st.title("Personalized recommendations")
@@ -33,8 +35,8 @@ def render():
         st.info("Using the demo profile. Complete the lifestyle questionnaire for recommendations based on your habits.")
     try:
         actions=recommend_for_profile(profile,top_n=8)
-    except Exception as exc:
-        st.error(f"Recommendation engine could not load the action catalogue: {exc}")
+    except Exception:
+        st.error("Recommendations are temporarily unavailable. Check the action catalogue and try again.")
         return
     st.markdown(f"**{len(actions)} actions matched** · Content-based ranking with TF-IDF and cosine similarity")
     if not actions:
@@ -42,15 +44,20 @@ def render():
         return
     for index,action in enumerate(actions,1):
         with st.container(border=True):
+            already_added=any(g["title"]==action["title"] for g in st.session_state.goals)
             left,right=st.columns([5,1])
             with left:
                 st.markdown(f"<span class='tag'>#{index} · {action['category']} · {action['impact_tier'].title()} impact tier</span>",unsafe_allow_html=True)
                 st.subheader(action["title"])
                 st.write(action["description"])
                 st.caption(f"Why this matched: {action['reason']}")
-                st.progress(action["relevance_score"],text=f"Profile match · {action['relevance_score']:.0%}")
-                st.caption(f"Effort: {action['difficulty']}/5 · Cost tier: {action['cost_tier'].title()} · Source: {action['source_name']}")
-                st.markdown(f"[View action source]({action['source_url']})")
+                st.progress(action["relevance_score"],text=f"Profile relevance · {action['relevance_score']:.0%} (not confidence or impact)")
+                st.caption(f"Effort: {action['difficulty']}/5 · Cost tier: {action['cost_tier'].title()}")
+                with st.expander("Why this action and its source"):
+                    st.write(action["reason"])
+                    st.write(f"Applicability rule: `{action.get('eligibility','general')}`. Confirm this action fits your circumstances before starting.")
+                    st.caption("The catalogue does not provide validated, user-specific emissions savings for this action.")
+                    st.markdown(f"Source: [{action['source_name']}]({action['source_url']})")
             with right:
-                st.button("Add goal",key=f"add_goal_{action['action_id']}",use_container_width=True,on_click=_add_goal,args=(action,index))
+                st.button("In your goals" if already_added else "Add goal",key=f"add_goal_{action['action_id']}",disabled=already_added,use_container_width=True,on_click=_add_goal,args=(action,index))
     st.caption("No kg CO₂e savings are displayed because the catalogue does not yet contain validated, user-specific savings calculations.")

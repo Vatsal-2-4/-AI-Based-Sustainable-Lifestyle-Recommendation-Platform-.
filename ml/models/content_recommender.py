@@ -148,7 +148,7 @@ def recommend(profile, top_n=6, catalogue=None):
         if category>=.65: reasons.append(f"Your profile indicates a stronger {row['category'].lower()} focus")
         elif category>=.4: reasons.append(f"Relevant to your {row['category'].lower()} habits")
         if cost_fit>=.95: reasons.append("Low-cost or no-cost to try")
-        item={key:row[key] for key in ("action_id","category","title","description","impact_tier","cost_tier","difficulty","source_name","source_url")}
+        item={key:row[key] for key in ("action_id","category","title","description","eligibility","impact_tier","cost_tier","difficulty","source_name","source_url")}
         item.update({"similarity":round(float(similarity),4),"relevance_score":round(score,4),"reason":" · ".join(reasons) or "General sustainable-lifestyle match","rank_position":0})
         ranked.append(item)
     ranked.sort(key=lambda item:(-item["relevance_score"],-item["similarity"],item["action_id"]))

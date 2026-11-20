@@ -33,8 +33,10 @@ def render():
                     st.session_state.user_id=user["user_id"]
                     st.session_state.user_email=user["email"]
                     st.session_state.authenticated=True
-                    st.session_state.page="Dashboard"; st.session_state.nav="Dashboard"
+                    destination="Questionnaire" if mode=="Create account" else "Dashboard"
+                    st.session_state.page=destination
+                    st.session_state.pending_navigation=destination
                     st.rerun()
                 except ValueError as exc: st.error(str(exc))
-                except Exception as exc: st.error(f"Could not complete account request: {exc}")
-        st.caption("Passwords are stored as salted PBKDF2 hashes. This local demo does not include account recovery or login rate limiting.")
+                except Exception: st.error("The account service is temporarily unavailable. Please try again.")
+        st.caption("Passwords are stored as salted PBKDF2 hashes. Account recovery is not available in this prototype. Accounts created before password sign-in need a new email address.")

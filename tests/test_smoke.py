@@ -6,6 +6,7 @@ from pathlib import Path
 import database.connection as connection
 from backend.services.footprint_service import calculate_footprint
 from database import repository
+from database.schema import initialize_database
 
 
 class ApplicationSmokeTests(unittest.TestCase):
@@ -32,8 +33,10 @@ class ApplicationSmokeTests(unittest.TestCase):
 
     def test_persists_records_and_prevents_cross_user_links(self):
         response_id = repository.save_lifestyle_response(self.user_id, self._response())
-        record_id = repository.create_footprint_record(self.user_id, 3, {"Electricity": 3}, response_id=response_id)
+        snapshot={"schema_version":1,"electricity_kwh_month":100}
+        record_id = repository.create_footprint_record(self.user_id, 3, {"Electricity": 3}, response_id=response_id,input_snapshot=snapshot)
         self.assertEqual(repository.get_footprint_records(self.user_id)[0]["record_id"], record_id)
+        self.assertEqual(repository.get_footprint_records(self.user_id)[0]["input_snapshot"],snapshot)
         other_user = repository.create_user("other@example.test", "Other User", "another secure password")
         recommendation_id = repository.save_recommendation(other_user, {
             "action_key": "test-action", "category": "Energy", "title": "Save energy",
@@ -41,6 +44,45 @@ class ApplicationSmokeTests(unittest.TestCase):
         })
         with self.assertRaises(ValueError):
             repository.create_progress(self.user_id, "Cross-user action", "Energy", recommendation_id)
+        own_recommendation=repository.save_recommendation(self.user_id,{"action_key":"own-action","category":"Energy","title":"My action","difficulty":2,"relevance_score":.5,"rank_position":1})
+        goal_id=repository.create_progress(self.user_id,"My action","Energy",own_recommendation)
+        repository.update_progress(self.user_id,goal_id,status="paused")
+        self.assertEqual(repository.get_progress(self.user_id)[0]["status"],"paused")
+        repository.update_progress(self.user_id,goal_id,progress_percent=100,status="completed")
+        completed=next(g for g in repository.get_progress(self.user_id) if g["progress_id"]==goal_id)
+        self.assertEqual(completed["progress_percent"],100)
+        self.assertEqual(completed["status"],"completed")
+
+    def test_export_and_delete_account_data(self):
+        response_id=repository.save_lifestyle_response(self.user_id,self._response())
+        repository.create_footprint_record(self.user_id,2,{"Electricity":2},response_id=response_id,input_snapshot={"schema_version":1})
+        repository.save_recommendation(self.user_id,{"action_key":"export-test","category":"Energy","title":"Reduce use","difficulty":2,"relevance_score":.5,"rank_position":1})
+        exported=repository.export_user_data(self.user_id)
+        self.assertEqual(exported["account"]["email"],"smoke@example.test")
+        self.assertEqual(len(exported["footprint_estimates"]),1)
+        self.assertIsNone(exported["recommendations"][0]["estimated_saving_kg_co2e"])
+        self.assertFalse(exported["recommendations"][0]["saving_estimate_available"])
+        repository.delete_user(self.user_id)
+        with self.assertRaises(ValueError): repository.export_user_data(self.user_id)
+
+    def test_migration_adds_input_snapshot_to_existing_footprint_table(self):
+        legacy_path=Path(self.temp_dir.name)/"legacy.sqlite3"
+        connection.DB_PATH=legacy_path
+        import sqlite3
+        db=sqlite3.connect(legacy_path)
+        try:
+            db.execute("CREATE TABLE users(user_id INTEGER PRIMARY KEY,email TEXT UNIQUE,display_name TEXT NOT NULL,password_salt TEXT,password_hash TEXT,created_at TEXT,updated_at TEXT)")
+            db.execute("CREATE TABLE carbon_footprint_records(record_id INTEGER PRIMARY KEY,user_id INTEGER NOT NULL,response_id INTEGER,total_kg_co2e REAL NOT NULL,category_breakdown_json TEXT NOT NULL,factor_version TEXT NOT NULL,is_estimate INTEGER NOT NULL,created_at TEXT)")
+            db.commit()
+        finally:
+            db.close()
+        initialize_database()
+        db=sqlite3.connect(legacy_path)
+        try:
+            columns={row[1] for row in db.execute("PRAGMA table_info(carbon_footprint_records)")}
+        finally:
+            db.close()
+        self.assertIn("input_snapshot_json",columns)
 
     def test_null_record_recommendation_upserts(self):
         fields = {"action_key": "same-action", "category": "Energy", "title": "First title", "difficulty": 2, "relevance_score": .5, "rank_position": 1}

@@ -8,8 +8,12 @@ def render():
     st.write("")
     uid=st.session_state.user_id
     goals=st.session_state.get("goals",[])
-    records=get_footprint_records(uid,limit=1)
-    recommendations=get_recommendations(uid,limit=3)
+    try:
+        records=get_footprint_records(uid,limit=1)
+        recommendations=get_recommendations(uid,limit=3)
+    except Exception:
+        st.error("We could not load your saved dashboard data. Check the local database and reload this page.")
+        return
     cols=st.columns(4)
     latest=records[0] if records else None
     values=[("LATEST ESTIMATE",f"{latest['total_kg_co2e']:,.0f} kg" if latest else "Not calculated", "Partial annual CO₂e estimate" if latest else "Use Carbon footprint to start"),

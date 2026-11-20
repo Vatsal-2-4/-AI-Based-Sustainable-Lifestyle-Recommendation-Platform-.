@@ -35,6 +35,7 @@ CREATE TABLE IF NOT EXISTS carbon_footprint_records (
   response_id INTEGER,
   total_kg_co2e REAL NOT NULL CHECK(total_kg_co2e >= 0),
   category_breakdown_json TEXT NOT NULL,
+  input_snapshot_json TEXT NOT NULL DEFAULT '{}',
   factor_version TEXT NOT NULL DEFAULT 'demo-v1',
   is_estimate INTEGER NOT NULL DEFAULT 1 CHECK(is_estimate IN (0,1)),
   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -93,3 +94,6 @@ def initialize_database():
             connection.execute("ALTER TABLE users ADD COLUMN password_salt TEXT")
         if "password_hash" not in user_columns:
             connection.execute("ALTER TABLE users ADD COLUMN password_hash TEXT")
+        footprint_columns = {row["name"] for row in connection.execute("PRAGMA table_info(carbon_footprint_records)")}
+        if "input_snapshot_json" not in footprint_columns:
+            connection.execute("ALTER TABLE carbon_footprint_records ADD COLUMN input_snapshot_json TEXT NOT NULL DEFAULT '{}'")

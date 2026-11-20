@@ -45,14 +45,14 @@ General sustainability tip lists offer the same advice to everyone. Carbon calcu
 
 ### Available in the current UI demo
 
-- **Home page:** project introduction and navigation actions.
-- **Login and registration screen:** local SQLite accounts with salted PBKDF2 password hashes; no external identity provider.
+- **Home page:** project introduction with a guided first step for new or demo users.
+- **Login and registration screen:** local SQLite accounts with salted PBKDF2 password hashes, plus a sidebar sign-out action; no external identity provider or account recovery.
 - **Lifestyle questionnaire:** editable transport, diet, housing, budget, energy, waste, and location fields saved in SQLite.
 - **Dashboard:** latest saved footprint estimate, goal counts, and saved recommendation actions; empty states prompt the user to create data.
-- **Carbon footprint page:** user-entered fuel, electricity, food, water, and waste amounts; documented-factor kg CO₂e total and category chart; separate water/waste volume charts; source notes and limitations.
+- **Carbon footprint page:** user-entered fuel, electricity, food, water, and waste amounts; supported profile electricity is prefilled; activity inputs are saved with estimates; documented-factor kg CO₂e total and category chart; separate water/waste volume charts; source notes and limitations.
 - **Recommendations page:** ranked example actions with fit details and an Add goal interaction.
 - **Progress tracking:** SQLite-backed goals, editable progress and completion, with a trend chart after multiple estimates are saved.
-- **Profile page:** displays the current saved profile and links to the questionnaire.
+- **Profile page:** displays the current saved profile and links to questionnaire editing, JSON data export, and account/data deletion.
 - **Responsive visual design:** green, white, and neutral palette, shared typography, reusable components, and sidebar navigation.
 
 ### Personalized content-based recommender
@@ -65,6 +65,12 @@ Evaluate ranking against the small manually labeled scenario set with:
 
 ```bash
 python -m ml.evaluate_recommender
+```
+
+Run database, account, calculator, and saved-input smoke checks with:
+
+```bash
+python -m unittest discover -s tests -v
 ```
 
 The script reports Precision@5, Recall@5, NDCG@5, and catalogue coverage. The evaluation profiles and expected action IDs are project-team labels for repeatable demonstration; they are not population-level ground truth.

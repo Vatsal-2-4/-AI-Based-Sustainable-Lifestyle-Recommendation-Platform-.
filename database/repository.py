@@ -129,7 +129,7 @@ def get_latest_lifestyle_response(user_id):
         if not row: return None
         result = dict(row); result["preferences"] = json.loads(result.pop("preferences_json")); return result
 
-def create_footprint_record(user_id, total_kg_co2e, category_breakdown, *, response_id=None, factor_version="demo-v1", is_estimate=True):
+def create_footprint_record(user_id, total_kg_co2e, category_breakdown, *, response_id=None, factor_version="demo-v1", is_estimate=True, input_snapshot=None):
     _ready()
     total = _number(total_kg_co2e, "Total footprint")
     if not isinstance(category_breakdown, dict) or not category_breakdown: raise ValueError("Category breakdown must be a non-empty object")
@@ -137,11 +137,13 @@ def create_footprint_record(user_id, total_kg_co2e, category_breakdown, *, respo
     if not math.isclose(total, sum(breakdown.values()), rel_tol=1e-6, abs_tol=0.02):
         raise ValueError("Total footprint must match the category breakdown")
     encoded = json.dumps(breakdown, allow_nan=False)
+    try: snapshot_json=json.dumps(input_snapshot or {}, allow_nan=False)
+    except (TypeError, ValueError) as exc: raise ValueError("Activity inputs must be JSON-compatible") from exc
     with get_connection() as db:
         if response_id is not None:
             own_response=db.execute("SELECT 1 FROM lifestyle_questionnaire_responses WHERE response_id=? AND user_id=?",(int(response_id),int(user_id))).fetchone()
             if not own_response: raise ValueError("Lifestyle response not found for this user")
-        cur = db.execute("INSERT INTO carbon_footprint_records(user_id,response_id,total_kg_co2e,category_breakdown_json,factor_version,is_estimate) VALUES(?,?,?,?,?,?)", (int(user_id),response_id,total,encoded,_valid_text(factor_version,"Factor version",40),int(bool(is_estimate))))
+        cur = db.execute("INSERT INTO carbon_footprint_records(user_id,response_id,total_kg_co2e,category_breakdown_json,input_snapshot_json,factor_version,is_estimate) VALUES(?,?,?,?,?,?,?)", (int(user_id),response_id,total,encoded,snapshot_json,_valid_text(factor_version,"Factor version",40),int(bool(is_estimate))))
         return cur.lastrowid
 
 def get_footprint_records(user_id, limit=20):
@@ -150,8 +152,38 @@ def get_footprint_records(user_id, limit=20):
         rows = db.execute("SELECT * FROM carbon_footprint_records WHERE user_id=? ORDER BY record_id DESC LIMIT ?", (int(user_id),limit)).fetchall()
         result=[]
         for row in rows:
-            item=dict(row); item["category_breakdown"] = json.loads(item.pop("category_breakdown_json")); result.append(item)
+            item=dict(row); item["category_breakdown"] = json.loads(item.pop("category_breakdown_json")); item["input_snapshot"] = json.loads(item.pop("input_snapshot_json", "{}")); result.append(item)
         return result
+
+def export_user_data(user_id):
+    """Return user-owned records as a JSON-serializable export bundle."""
+    _ready()
+    with get_connection() as db:
+        user=db.execute("SELECT email,display_name,created_at FROM users WHERE user_id=?",(int(user_id),)).fetchone()
+        if not user: raise ValueError("Account not found")
+        responses=[dict(r) for r in db.execute("SELECT * FROM lifestyle_questionnaire_responses WHERE user_id=? ORDER BY response_id",(int(user_id),)).fetchall()]
+        for row in responses: row["preferences"]=json.loads(row.pop("preferences_json"))
+        footprint_rows=db.execute("SELECT * FROM carbon_footprint_records WHERE user_id=? ORDER BY record_id",(int(user_id),)).fetchall()
+        footprints=[]
+        for row in footprint_rows:
+            item=dict(row)
+            item["category_breakdown"]=json.loads(item.pop("category_breakdown_json"))
+            item["input_snapshot"]=json.loads(item.pop("input_snapshot_json","{}"))
+            footprints.append(item)
+        recommendations=[dict(r) for r in db.execute("SELECT * FROM ai_recommendations WHERE user_id=? ORDER BY recommendation_id",(int(user_id),)).fetchall()]
+        for recommendation in recommendations:
+            if recommendation["estimated_saving_kg_co2e"]==0:
+                recommendation["estimated_saving_kg_co2e"]=None
+                recommendation["saving_estimate_available"]=False
+        progress=[dict(r) for r in db.execute("SELECT * FROM user_progress WHERE user_id=? ORDER BY progress_id",(int(user_id),)).fetchall()]
+    return {"account":dict(user),"lifestyle_responses":responses,"footprint_estimates":footprints,"recommendations":recommendations,"goals":progress}
+
+def delete_user(user_id):
+    """Delete a user's profile and linked application records."""
+    _ready()
+    with get_connection() as db:
+        cursor=db.execute("DELETE FROM users WHERE user_id=?",(int(user_id),))
+        if cursor.rowcount==0: raise ValueError("Account not found")
 
 def save_recommendation(user_id, recommendation, record_id=None):
     _ready()
