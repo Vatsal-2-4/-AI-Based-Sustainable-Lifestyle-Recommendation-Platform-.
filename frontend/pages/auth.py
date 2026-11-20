@@ -1,5 +1,6 @@
 import streamlit as st
-from database.repository import create_user, get_user_by_email
+from database.repository import create_user, authenticate_user
+from frontend.styles import DEFAULT_PROFILE
 
 def render():
     st.title("Create your account" if not st.session_state.authenticated else "Welcome back")
@@ -11,25 +12,29 @@ def render():
         with st.form("account_form"):
             if mode=="Create account": name=st.text_input("Full name",value=st.session_state.profile['name'])
             email=st.text_input("Email address",placeholder="you@example.com")
-            password=st.text_input("Password",type="password")
+            password=st.text_input("Password",type="password",help="Use at least 12 characters when creating an account.")
+            confirm=st.text_input("Confirm password",type="password") if mode=="Create account" else None
             submitted=st.form_submit_button(mode,type="primary",use_container_width=True)
         if submitted:
             if not email or not password: st.error("Enter an email and password to continue.")
+            elif mode=="Create account" and password!=confirm: st.error("Passwords do not match.")
             else:
                 try:
                     if mode=="Create account":
-                        user_id=create_user(email,name)
+                        user_id=create_user(email,name,password)
                         user={"user_id":user_id,"email":email,"display_name":name}
                     else:
-                        user=get_user_by_email(email)
-                        if not user: raise ValueError("No demo account exists for this email. Choose Create account first.")
+                        user=authenticate_user(email,password)
+                        if not user: raise ValueError("Email or password is incorrect.")
+                    # Replace the previous account's in-memory profile and cached record IDs.
+                    st.session_state.profile={**DEFAULT_PROFILE,"name":user["display_name"]}
+                    for key in ("latest_response_id","latest_footprint_record_id","questionnaire_saved","db_profile_loaded","db_latest_footprint_loaded","db_goals_loaded","goals"):
+                        st.session_state.pop(key,None)
                     st.session_state.user_id=user["user_id"]
                     st.session_state.user_email=user["email"]
-                    st.session_state.profile['name']=user['display_name']
-                    st.session_state.db_goals_loaded=False
                     st.session_state.authenticated=True
                     st.session_state.page="Dashboard"; st.session_state.nav="Dashboard"
                     st.rerun()
                 except ValueError as exc: st.error(str(exc))
-                except Exception as exc: st.error(f"Could not save account to SQLite: {exc}")
-        st.caption("Demo accounts store email and display name only. Passwords are not persisted; this is not production authentication.")
+                except Exception as exc: st.error(f"Could not complete account request: {exc}")
+        st.caption("Passwords are stored as salted PBKDF2 hashes. This local demo does not include account recovery or login rate limiting.")

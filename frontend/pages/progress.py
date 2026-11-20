@@ -1,7 +1,7 @@
 import streamlit as st
 import plotly.express as px
 import pandas as pd
-from database.repository import update_progress, delete_progress
+from database.repository import update_progress, delete_progress, get_footprint_records
 
 def _save_slider(goal_index):
     goal=st.session_state.goals[goal_index]
@@ -18,7 +18,7 @@ def render():
     goals=st.session_state.goals
     active=sum(not g['done'] for g in goals); complete=sum(g['done'] for g in goals)
     a,b,c=st.columns(3)
-    a.metric("Active goals",active); b.metric("Completed goals",complete); c.metric("Estimated savings started",f"{sum(600 if g['category']=='Transport' else 150 for g in goals if g['progress']>0):,} kg")
+    a.metric("Active goals",active); b.metric("Completed goals",complete); c.metric("Goals in progress",sum(g['progress']>0 and not g['done'] for g in goals))
     st.subheader("Your goals")
     if st.session_state.get("progress_error"):
         st.error(f"Progress could not be saved: {st.session_state.pop('progress_error')}")
@@ -43,8 +43,12 @@ def render():
                         delete_progress(st.session_state.user_id,goal["db_id"])
                         st.session_state.goals.pop(i); st.rerun()
                     except Exception as exc: st.error(f"Could not remove goal: {exc}")
-    st.subheader("Footprint trend")
-    df=pd.DataFrame({"Estimated footprint (t CO₂e)":[5.5,5.3,5.15,4.95,4.8]},index=["Jun","Jul","Aug","Sep","Oct"])
-    fig=px.area(df,y="Estimated footprint (t CO₂e)",markers=True,color_discrete_sequence=["#278253"])
-    fig.update_layout(margin=dict(t=15,b=0,l=0,r=0),paper_bgcolor="rgba(0,0,0,0)",plot_bgcolor="rgba(0,0,0,0)",height=300)
-    st.plotly_chart(fig,use_container_width=True)
+    st.subheader("Saved footprint estimates")
+    records=get_footprint_records(st.session_state.user_id,limit=20)
+    if len(records)<2:
+        st.info("Save at least two footprint estimates to see a trend. Estimates use the factor set displayed on the Carbon footprint page.")
+    else:
+        history=pd.DataFrame([{"Saved":r["created_at"],"Estimated kg CO₂e/year":r["total_kg_co2e"]} for r in reversed(records)])
+        fig=px.line(history,x="Saved",y="Estimated kg CO₂e/year",markers=True,color_discrete_sequence=["#278253"])
+        fig.update_layout(margin=dict(t=15,b=0,l=0,r=0),paper_bgcolor="rgba(0,0,0,0)",plot_bgcolor="rgba(0,0,0,0)",height=300)
+        st.plotly_chart(fig,use_container_width=True)

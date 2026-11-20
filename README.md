@@ -1,8 +1,8 @@
 # AI-Based Sustainable Lifestyle Recommendation Platform
 
-A Streamlit project that helps people explore how daily lifestyle choices relate to their estimated carbon footprint and discover practical sustainability actions. The prototype combines a lifestyle questionnaire, category based footprint view, ranked sample recommendations, and goal tracking in a clean, responsive interface.
+A Streamlit project that helps people explore how daily lifestyle choices relate to their estimated carbon footprint and discover practical sustainability actions. The prototype combines a lifestyle questionnaire, category based footprint view, content-ranked recommendations, and SQLite-backed goal tracking in a clean interface.
 
-> **Project status:** Academic prototype/demo. Dashboard cards, trends, and profile defaults include sample data. The calculator uses documented factors with partial and mixed system boundaries; it is not a complete India-specific footprint. Login and registration are demo flows and do not provide secure account authentication.
+> **Project status:** Academic prototype/demo. The dashboard and progress charts use saved application data. The calculator uses documented factors with partial and mixed system boundaries; it is not a complete India-specific footprint. Passwords are salted PBKDF2 hashes in SQLite, but this local prototype has no account recovery, login rate limiting, or production deployment controls.
 
 ## Contents
 
@@ -15,7 +15,7 @@ A Streamlit project that helps people explore how daily lifestyle choices relate
 - [Technology stack](#technology-stack)
 - [Project structure](#project-structure)
 - [Getting started](#getting-started)
-- [How to use the demo](#how-to-use-the-demo)
+- [How to use the app](#how-to-use-the-app)
 - [Data and calculation notes](#data-and-calculation-notes)
 - [Current limitations](#current-limitations)
 - [Roadmap](#roadmap)
@@ -46,13 +46,13 @@ General sustainability tip lists offer the same advice to everyone. Carbon calcu
 ### Available in the current UI demo
 
 - **Home page:** project introduction and navigation actions.
-- **Login and registration screen:** interactive demo form; does not authenticate users against a server.
-- **Lifestyle questionnaire:** editable transport, diet, housing, budget, energy, waste, and location fields stored in the Streamlit session.
-- **Dashboard:** sample footprint category chart, sustainability score, summary metrics, and suggested next steps.
+- **Login and registration screen:** local SQLite accounts with salted PBKDF2 password hashes; no external identity provider.
+- **Lifestyle questionnaire:** editable transport, diet, housing, budget, energy, waste, and location fields saved in SQLite.
+- **Dashboard:** latest saved footprint estimate, goal counts, and saved recommendation actions; empty states prompt the user to create data.
 - **Carbon footprint page:** user-entered fuel, electricity, food, water, and waste amounts; documented-factor kg CO₂e total and category chart; separate water/waste volume charts; source notes and limitations.
 - **Recommendations page:** ranked example actions with fit details and an Add goal interaction.
-- **Progress tracking:** session-based goals, editable progress, completion controls, and a sample trend chart.
-- **Profile page:** displays the current demo profile and links to the questionnaire.
+- **Progress tracking:** SQLite-backed goals, editable progress and completion, with a trend chart after multiple estimates are saved.
+- **Profile page:** displays the current saved profile and links to the questionnaire.
 - **Responsive visual design:** green, white, and neutral palette, shared typography, reusable components, and sidebar navigation.
 
 ### Personalized content-based recommender
@@ -69,18 +69,17 @@ python -m ml.evaluate_recommender
 
 The script reports Precision@5, Recall@5, NDCG@5, and catalogue coverage. The evaluation profiles and expected action IDs are project-team labels for repeatable demonstration; they are not population-level ground truth.
 
-### Planned product capabilities
+### Current limitations and next steps
 
 - Verified India-relevant emission factors with sources, units, geography, and publication year.
-- Fully integrated footprint and recommendation services using user answers and catalogue data.
-- Persistent profiles, reports, recommendations, and progress in SQLite.
-- Eligibility filtering and transparent weighted ranking.
-- Optional grounded AI explanations with response validation and a deterministic fallback.
+- User-specific verified action savings and regional footprint factors.
+- Account recovery, login throttling, and deployment-grade session security.
+- A defined, evidence-backed sustainability score and report export.
 - Evaluation with hand-calculated profiles and usability feedback.
 
 ## System architecture
 
-The project uses a simple modular monolith. Streamlit provides the interface, Python modules contain calculation and recommendation logic, CSV files provide the initial catalogue data, and SQLite is the planned local persistence layer. A separate web API or microservice deployment is not required for the mini project.
+The project uses a simple modular monolith. Streamlit provides the interface, Python modules contain calculation and recommendation logic, CSV files provide action and factor data, and SQLite persists users, questionnaire responses, estimates, recommendations, and goals. A separate web API or microservice deployment is not required for the mini project.
 
 ```mermaid
 flowchart TD
@@ -117,8 +116,7 @@ flowchart TD
 2. The application validates units and acceptable ranges.
 3. A footprint service applies appropriate emission factors to activity data and calculates category totals.
 4. The recommendation service removes actions that do not apply to the user, then scores and ranks eligible actions.
-5. An optional explanation service receives selected catalogue facts and generates text. The application validates numeric claims and uses a fixed template if generation is unavailable or invalid.
-6. The interface presents the footprint and action list. User-selected goals and progress updates are saved to SQLite when persistence is connected.
+5. The interface presents the footprint and action list. User-selected goals and progress updates are saved to SQLite.
 
 ## Technology stack
 
@@ -141,14 +139,14 @@ flowchart TD
 ├── prd.md                         # Product requirements document
 ├── frontend/
 │   ├── main.py                    # Sidebar navigation and page routing
-│   ├── styles.py                  # Shared CSS and session demo defaults
+│   ├── styles.py                  # Shared CSS and session state initialization
 │   ├── components/common.py       # Reusable metrics and page header
 │   └── pages/
 │       ├── home.py                # Landing page
-│       ├── auth.py                # Login/register demo
+│       ├── auth.py                # Local registration and sign-in UI
 │       ├── questionnaire.py       # Lifestyle inputs
 │       ├── dashboard.py           # Summary metrics and charts
-│       ├── recommendations.py    # Ranked sample actions
+│       ├── recommendations.py    # Content-ranked action catalogue
 │       ├── calculator.py          # Editable footprint estimate
 │       ├── progress.py            # Goal and progress interface
 │       └── profile.py             # Demo profile view
@@ -229,9 +227,9 @@ Streamlit prints a local URL, normally `http://localhost:8501`, which you can op
 python -m database.init_db
 ```
 
-This creates the local SQLite database file. The current demo UI keeps most state in the Streamlit session and does not yet persist its forms or goals through this database.
+This creates the local SQLite database file. Questionnaire responses, footprint estimates, recommendations, and goals are persisted there.
 
-## How to use the demo
+## How to use the app
 
 1. Open **Home** and choose the dashboard or questionnaire.
 2. Enter sample lifestyle details and save the profile.
@@ -243,7 +241,7 @@ This creates the local SQLite database file. The current demo UI keeps most stat
 
 ## Data and calculation notes
 
-Some dashboard visuals and recommendation catalogue tiers remain demonstration data. The calculator's emission factors are documented but have different geographic and accounting boundaries. Before presenting its estimates as a complete or locally precise footprint:
+The recommendation catalogue contains curated qualitative tiers, and estimated savings are not computed. The calculator's emission factors have different geographic and accounting boundaries, so its results are partial estimates, not a complete locally precise footprint:
 
 - Replace placeholders with authoritative, traceable sources relevant to the intended geography.
 - Store units, geography, source year, and assumptions for each factor.
@@ -259,23 +257,18 @@ Water use and waste generation are shown as annual litres and kilograms. They ar
 
 ## Current limitations
 
-- Login/register is a UI demonstration and does not securely create or verify accounts.
-- Profile, form, and goal data are session based and may reset when the session ends.
-- Dashboard summary cards and trend-chart values are still presentation samples; use the Carbon footprint page for the documented-factor estimate.
-- Some backend services are still scaffolding and are not yet connected to every page.
-- AI explanation generation is a placeholder; connect a provider only after adding secret management, output validation, and fallback behavior.
-- The current content-similarity helper is optional and does not replace eligibility rules or transparent ranking.
+- Local accounts use salted password hashes, but there is no account recovery, rate limiting, or production-grade session protection.
+- Profile responses, footprint estimates, recommendations, and progress are stored in SQLite; some display preferences remain in the Streamlit session.
+- No sustainability score or verified action savings are shown because those values are not currently calculated.
+- The model provides content-based ranking; recommendations are not proof that an action will cause a quantified reduction.
 
 ## Roadmap
 
-1. Verify and document the emission factor and action catalogue data.
-2. Connect questionnaire data to backend validation and footprint calculation.
-3. Implement and explain eligibility filtering and recommendation scoring.
-4. Persist profiles, footprint reports, goals, and progress in SQLite.
-5. Add grounded AI explanations with validation and a non-AI fallback.
-6. Add tests for calculations, ranking, and persistence.
-7. Evaluate accuracy and usability with representative test profiles and student users.
-8. Refine accessibility, error handling, documentation, and deployment.
+1. Validate factors and recommendation quality with local user research and independent calculations.
+2. Add regional factors and user-specific quantified action savings where evidence supports them.
+3. Add account recovery, rate limiting, and deployment-grade security before any public deployment.
+4. Add a clearly defined evidence-backed sustainability score and report export if required.
+5. Continue improving accessibility, error handling, and test coverage.
 
 ## Academic alignment
 

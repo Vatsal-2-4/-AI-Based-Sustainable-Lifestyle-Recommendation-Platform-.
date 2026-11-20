@@ -1,9 +1,11 @@
 import streamlit as st
-from database.repository import get_or_create_user, get_user, get_progress, get_latest_lifestyle_response
+from database.repository import get_or_create_user, get_user, get_progress, get_latest_lifestyle_response, get_footprint_records
+
+DEFAULT_PROFILE = {"name":"Demo User", "city":"Bengaluru", "commute":"Petrol / diesel car", "commute_km":18, "commute_days":5, "diet":"Mixed diet", "housing":"Rented apartment", "budget":1000, "electricity":240, "ac":"Some days", "segregation":"Sometimes", "water_usage":"Moderate", "food_waste":"Sometimes", "shopping_habit":"Monthly", "public_transport_available":True, "shops_in_person":True, "composting_possible":False}
 
 def initialize_state():
     st.session_state.setdefault("user_email", "demo@example.local")
-    st.session_state.setdefault("profile", {"name":"Demo User", "city":"Bengaluru", "commute":"Petrol / diesel car", "commute_km":18, "commute_days":5, "diet":"Mixed diet", "housing":"Rented apartment", "budget":1000, "electricity":240, "ac":"Some days", "segregation":"Sometimes", "water_usage":"Moderate", "food_waste":"Sometimes", "shopping_habit":"Monthly", "public_transport_available":True, "shops_in_person":True, "composting_possible":False})
+    st.session_state.setdefault("profile", DEFAULT_PROFILE.copy())
     st.session_state.setdefault("goals", [])
     st.session_state.setdefault("authenticated", False)
     st.session_state.setdefault("page", "Dashboard")
@@ -23,6 +25,13 @@ def initialize_state():
                 "segregation":response["waste_segregation"],**response["preferences"]})
             st.session_state.questionnaire_saved=True
         st.session_state.db_profile_loaded=True
+    if not st.session_state.get("db_latest_footprint_loaded", False):
+        records=get_footprint_records(user_id,limit=1)
+        if records:
+            st.session_state.latest_footprint_record_id=records[0]["record_id"]
+        else:
+            st.session_state.pop("latest_footprint_record_id",None)
+        st.session_state.db_latest_footprint_loaded=True
     if not st.session_state.get("db_goals_loaded", False):
         st.session_state.goals = [{"db_id":row["progress_id"], "title":row["goal_title"], "category":row["category"], "progress":row["progress_percent"]/100, "done":row["status"]=="completed"} for row in get_progress(user_id)]
         st.session_state.db_goals_loaded = True

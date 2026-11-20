@@ -6,6 +6,8 @@ CREATE TABLE IF NOT EXISTS users (
   user_id INTEGER PRIMARY KEY AUTOINCREMENT,
   email TEXT NOT NULL UNIQUE COLLATE NOCASE,
   display_name TEXT NOT NULL CHECK(length(trim(display_name)) BETWEEN 1 AND 120),
+  password_salt TEXT,
+  password_hash TEXT,
   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -87,3 +89,7 @@ def initialize_database():
             connection.execute("ALTER TABLE users ADD COLUMN display_name TEXT NOT NULL DEFAULT 'User'")
         if "updated_at" not in user_columns:
             connection.execute("ALTER TABLE users ADD COLUMN updated_at TEXT NOT NULL DEFAULT ''")
+        if "password_salt" not in user_columns:
+            connection.execute("ALTER TABLE users ADD COLUMN password_salt TEXT")
+        if "password_hash" not in user_columns:
+            connection.execute("ALTER TABLE users ADD COLUMN password_hash TEXT")

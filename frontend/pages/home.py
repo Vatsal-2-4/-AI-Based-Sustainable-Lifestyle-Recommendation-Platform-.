@@ -16,4 +16,4 @@ def render():
     for c,icon,title,desc in zip(cols,["◉","✦","↗"],["Know your footprint","Find your next step","Build lasting habits"],["See which parts of your lifestyle shape your annual impact.","Get ideas that fit your budget, home, and routine.","Set simple goals and see your progress over time."]):
         with c: st.markdown(f'<div class="card"><div style="font-size:1.6rem;color:#278253">{icon}</div><h3>{title}</h3><p>{desc}</p></div>',unsafe_allow_html=True)
     st.markdown("<br>",unsafe_allow_html=True)
-    st.info("Demo experience powered by sample data. Footprint values are illustrative, not audited emissions measurements.")
+    st.info("Academic prototype. Footprint calculations are estimates with documented factors and stated limitations, not audited emissions measurements.")
