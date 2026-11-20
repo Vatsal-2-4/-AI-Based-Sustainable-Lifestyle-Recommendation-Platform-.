@@ -64,8 +64,10 @@ This section describes the repository as it exists today, to distinguish impleme
 ### Implemented from this PRD
 
 - Home directs first-time users to the questionnaire; new registrations continue to the questionnaire, and saving offers a direct path to the calculator.
+- Home now has interactive “Get started,” “How it works,” and “Data and privacy” views, with direct task navigation.
 - Saved questionnaire electricity pre-fills the calculator. Other activity quantities are never inferred from commute distance or qualitative answers.
 - Each new estimate stores the input snapshot needed to reload calculator entries. Trend charts compare only estimates with the same factor set and supported input-snapshot format.
+- Dashboard lets users select a saved estimate, inspect one category and its scope, view compatible history, and update or complete active goals inline.
 - Recommendation cards identify their applicability rule and source, label relevance as profile fit, and state that quantified savings are not available. Actions already in a user's goals cannot be added a second time.
 - Sidebar account controls include sign-out. Profile includes JSON export and confirmed account/data deletion.
 - Shared styling now includes responsive spacing and visible keyboard-focus treatment; actual device/browser accessibility review remains to be performed.

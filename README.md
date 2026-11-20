@@ -45,10 +45,10 @@ General sustainability tip lists offer the same advice to everyone. Carbon calcu
 
 ### Available in the current UI demo
 
-- **Home page:** project introduction with a guided first step for new or demo users.
+- **Home page:** interactive Get started, How it works, and Data and privacy tabs, guided next-step actions, and direct navigation to key tasks.
 - **Login and registration screen:** local SQLite accounts with salted PBKDF2 password hashes, plus a sidebar sign-out action; no external identity provider or account recovery.
 - **Lifestyle questionnaire:** editable transport, diet, housing, budget, energy, waste, and location fields saved in SQLite.
-- **Dashboard:** latest saved footprint estimate, goal counts, and saved recommendation actions; empty states prompt the user to create data.
+- **Dashboard:** selectable saved estimates, category explorer, water/waste indicators, compatible estimate history, and inline goal progress/completion; empty states prompt the user to create data.
 - **Carbon footprint page:** user-entered fuel, electricity, food, water, and waste amounts; supported profile electricity is prefilled; activity inputs are saved with estimates; documented-factor kg CO₂e total and category chart; separate water/waste volume charts; source notes and limitations.
 - **Recommendations page:** ranked example actions with fit details and an Add goal interaction.
 - **Progress tracking:** SQLite-backed goals, editable progress and completion, with a trend chart after multiple estimates are saved.
