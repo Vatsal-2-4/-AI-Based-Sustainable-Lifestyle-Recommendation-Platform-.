@@ -1,0 +1,3 @@
+category,activity,unit,kg_co2e_per_unit,source,source_year,region
+transport,car_km,km,0.18,REPLACE_WITH_VERIFIED_SOURCE,2026,India
+home_energy,electricity_kwh,kWh,0.70,REPLACE_WITH_VERIFIED_SOURCE,2026,India
