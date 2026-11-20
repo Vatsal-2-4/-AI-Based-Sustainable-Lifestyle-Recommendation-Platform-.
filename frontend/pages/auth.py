@@ -1,4 +1,5 @@
 import streamlit as st
+from database.repository import create_user, get_user_by_email
 
 def render():
     st.title("Create your account" if not st.session_state.authenticated else "Welcome back")
@@ -15,8 +16,20 @@ def render():
         if submitted:
             if not email or not password: st.error("Enter an email and password to continue.")
             else:
-                st.session_state.authenticated=True
-                if mode=="Create account": st.session_state.profile['name']=name
-                st.success("Signed in for this demo session.")
-                st.session_state.page="Dashboard"; st.rerun()
-        st.caption("Demo authentication only. No credentials are stored or sent to a server.")
+                try:
+                    if mode=="Create account":
+                        user_id=create_user(email,name)
+                        user={"user_id":user_id,"email":email,"display_name":name}
+                    else:
+                        user=get_user_by_email(email)
+                        if not user: raise ValueError("No demo account exists for this email. Choose Create account first.")
+                    st.session_state.user_id=user["user_id"]
+                    st.session_state.user_email=user["email"]
+                    st.session_state.profile['name']=user['display_name']
+                    st.session_state.db_goals_loaded=False
+                    st.session_state.authenticated=True
+                    st.session_state.page="Dashboard"; st.session_state.nav="Dashboard"
+                    st.rerun()
+                except ValueError as exc: st.error(str(exc))
+                except Exception as exc: st.error(f"Could not save account to SQLite: {exc}")
+        st.caption("Demo accounts store email and display name only. Passwords are not persisted; this is not production authentication.")

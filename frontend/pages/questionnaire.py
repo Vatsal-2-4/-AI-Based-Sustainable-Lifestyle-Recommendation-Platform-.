@@ -1,4 +1,5 @@
 import streamlit as st
+from database.repository import save_lifestyle_response, create_footprint_record
 
 def render():
     st.title("Lifestyle questionnaire")
@@ -26,5 +27,23 @@ def render():
         saved=st.form_submit_button("Save lifestyle profile →",type="primary",use_container_width=True)
     if saved:
         st.session_state.profile.update(name=name,city=city,commute=commute,commute_km=commute_km,commute_days=days,diet=diet,housing=housing,budget=budget,electricity=electricity,ac=ac,segregation=segregation)
-        st.success("Your demo profile has been saved.")
-        if st.button("Open dashboard"): st.session_state.page="Dashboard"; st.rerun()
+        try:
+            response_id = save_lifestyle_response(st.session_state.user_id, {
+                "city":city, "commute_mode":commute, "commute_km_day":commute_km,
+                "commute_days_week":days, "diet_pattern":diet, "housing_type":housing,
+                "monthly_budget_inr":budget, "electricity_kwh_month":electricity,
+                "ac_usage":ac, "waste_segregation":segregation,
+            })
+            st.session_state.latest_response_id = response_id
+            diet_tonnes={"Mixed diet":.9,"Mostly plant-based":.72,"Vegetarian":.62,"Vegan":.5}[diet]
+            breakdown_tonnes={
+                "Transport":round(commute_km*days*52*.006,2),
+                "Home energy":round(electricity*12*.005,2),
+                "Food":diet_tonnes, "Shopping & waste":.6, "Flights":.18,
+            }
+            record_id=create_footprint_record(st.session_state.user_id, sum(breakdown_tonnes.values())*1000,
+                {key:value*1000 for key,value in breakdown_tonnes.items()}, response_id=response_id)
+            st.session_state.latest_footprint_record_id=record_id
+            st.success("Lifestyle response and sample footprint saved to SQLite.")
+        except Exception as exc:
+            st.error(f"Could not save the questionnaire to the database: {exc}")

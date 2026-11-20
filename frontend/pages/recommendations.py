@@ -1,5 +1,6 @@
 import streamlit as st
 import plotly.express as px
+from database.repository import save_recommendation, update_recommendation_status, create_progress
 
 def render():
     st.title("Recommendations")
@@ -16,6 +17,19 @@ def render():
                 st.progress(item['score'],text=f"Profile fit · {int(item['score']*100)}%")
             with b:
                 if st.button("Add goal",key=f"goal_{i}",use_container_width=True):
-                    if not any(g['title']==item['title'] for g in st.session_state.goals): st.session_state.goals.append({"title":item['title'],"category":item['category'],"progress":0.0,"done":False})
-                    st.success("Added")
+                    try:
+                        record_id=st.session_state.get("latest_footprint_record_id")
+                        recommendation_id=save_recommendation(st.session_state.user_id, {
+                            "action_key":f"demo-{i}", "category":item["category"], "title":item["title"],
+                            "explanation":item["fit"], "estimated_saving_kg_co2e":item["saving"],
+                            "difficulty":1 if item["effort"]=="Easy" else 2,
+                            "relevance_score":item["score"], "rank_position":i,
+                        }, record_id=record_id)
+                        update_recommendation_status(st.session_state.user_id,recommendation_id,"saved")
+                        if not any(g['title']==item['title'] for g in st.session_state.goals):
+                            progress_id=create_progress(st.session_state.user_id,item['title'],item['category'],recommendation_id)
+                            st.session_state.goals.append({"db_id":progress_id,"title":item['title'],"category":item['category'],"progress":0.0,"done":False})
+                        st.success("Recommendation and goal saved to SQLite.")
+                    except Exception as exc:
+                        st.error(f"Could not save this recommendation: {exc}")
     st.caption("Impact numbers are sample UI data pending verified emission factors.")

@@ -1,4 +1,20 @@
 import streamlit as st
+from database.repository import get_or_create_user, get_user, get_progress
+
+def initialize_state():
+    st.session_state.setdefault("user_email", "demo@example.local")
+    st.session_state.setdefault("profile", {"name":"Demo User", "city":"Bengaluru", "commute":"Petrol / diesel car", "commute_km":18, "commute_days":5, "diet":"Mixed diet", "housing":"Rented apartment", "budget":1000, "electricity":240, "ac":"Some days", "segregation":"Sometimes"})
+    st.session_state.setdefault("goals", [])
+    st.session_state.setdefault("authenticated", False)
+    st.session_state.setdefault("page", "Dashboard")
+    user_id = get_or_create_user(st.session_state.user_email, st.session_state.profile["name"])
+    st.session_state.user_id = user_id
+    user = get_user(user_id)
+    if user:
+        st.session_state.profile["name"] = user["display_name"]
+    if not st.session_state.get("db_goals_loaded", False):
+        st.session_state.goals = [{"db_id":row["progress_id"], "title":row["goal_title"], "category":row["category"], "progress":row["progress_percent"]/100, "done":row["status"]=="completed"} for row in get_progress(user_id)]
+        st.session_state.db_goals_loaded = True
 
 def load_styles():
     st.markdown("""<style>

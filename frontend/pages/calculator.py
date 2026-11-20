@@ -1,6 +1,7 @@
 import streamlit as st
 import plotly.express as px
 import pandas as pd
+from database.repository import create_footprint_record, get_footprint_records
 
 def render():
     st.title("Carbon footprint")
@@ -17,6 +18,13 @@ def render():
     diet_factor={"Mixed diet":.9,"Mostly plant-based":.72,"Vegetarian":.62,"Vegan":.5}[diet]
     values={"Transport":round(km*.006,2),"Home energy":round(power*.005,2),"Food":diet_factor,"Shopping & waste":.6,"Flights":round(flights*.18,2)}
     total=sum(values.values())
+    if calculate:
+        try:
+            rows=create_footprint_record(st.session_state.user_id,total*1000,{k:v*1000 for k,v in values.items()},response_id=st.session_state.get("latest_response_id"))
+            st.session_state.latest_footprint_record_id=rows
+            st.success("Footprint estimate saved to SQLite.")
+        except Exception as exc:
+            st.error(f"Could not save footprint: {exc}")
     with right:
         st.metric("Estimated annual footprint",f"{total:.1f} t CO₂e",help="Sample estimate; not a verified measurement")
         fig=px.pie(names=list(values),values=list(values.values()),hole=.62,color_discrete_sequence=["#20764b","#62a879","#a4cfad","#d5e9d9","#efbd6a"])
@@ -24,3 +32,7 @@ def render():
         st.plotly_chart(fig,use_container_width=True)
     st.subheader("Category estimates")
     st.dataframe(pd.DataFrame([{"Category":k,"Annual estimate (t CO₂e)":v,"Share":f"{v/total*100:.0f}%"} for k,v in values.items()]),hide_index=True,use_container_width=True)
+    history=get_footprint_records(st.session_state.user_id,limit=5)
+    if history:
+        st.subheader("Saved estimates")
+        st.dataframe([{"Saved":row["created_at"],"Annual footprint (kg CO₂e)":round(row["total_kg_co2e"],1),"Factor version":row["factor_version"]} for row in history],hide_index=True,use_container_width=True)
