@@ -1,5 +1,5 @@
 import streamlit as st
-from database.repository import save_lifestyle_response, create_footprint_record
+from database.repository import save_lifestyle_response
 
 def render():
     st.title("Lifestyle questionnaire")
@@ -22,28 +22,30 @@ def render():
         with a: electricity=st.number_input("Monthly electricity (kWh)",0,5000,p['electricity'])
         with b: ac=st.selectbox("Air conditioning use",["Rarely","Some days","Most days"],index=["Rarely","Some days","Most days"].index(p['ac']))
         with c: segregation=st.selectbox("Waste segregation",["Always","Sometimes","Not yet"],index=["Always","Sometimes","Not yet"].index(p['segregation']))
+        st.subheader("💧 Water, food waste, and shopping")
+        a,b,c=st.columns(3)
+        with a: water_usage=st.selectbox("Household water use",["Low","Moderate","High"],index=["Low","Moderate","High"].index(p.get('water_usage','Moderate')))
+        with b: food_waste=st.selectbox("How often is food wasted?",["Rarely","Sometimes","Often"],index=["Rarely","Sometimes","Often"].index(p.get('food_waste','Sometimes')))
+        with c: shopping_habit=st.selectbox("How often do you buy non-food items?",["Rarely","Monthly","Weekly","Very often"],index=["Rarely","Monthly","Weekly","Very often"].index(p.get('shopping_habit','Monthly')))
+        a,b,c=st.columns(3)
+        with a: public_transport_available=st.checkbox("Public transport is practical for my commute",value=p.get('public_transport_available',True))
+        with b: shops_in_person=st.checkbox("I shop in person at least sometimes",value=p.get('shops_in_person',True))
+        with c: composting_possible=st.checkbox("I can compost or access composting",value=p.get('composting_possible',False))
         st.subheader("📍 Location")
         name=st.text_input("Name",p['name']); city=st.text_input("City",p['city'])
         saved=st.form_submit_button("Save lifestyle profile →",type="primary",use_container_width=True)
     if saved:
-        st.session_state.profile.update(name=name,city=city,commute=commute,commute_km=commute_km,commute_days=days,diet=diet,housing=housing,budget=budget,electricity=electricity,ac=ac,segregation=segregation)
+        st.session_state.profile.update(name=name,city=city,commute=commute,commute_km=commute_km,commute_days=days,diet=diet,housing=housing,budget=budget,electricity=electricity,ac=ac,segregation=segregation,water_usage=water_usage,food_waste=food_waste,shopping_habit=shopping_habit,public_transport_available=public_transport_available,shops_in_person=shops_in_person,composting_possible=composting_possible)
         try:
             response_id = save_lifestyle_response(st.session_state.user_id, {
                 "city":city, "commute_mode":commute, "commute_km_day":commute_km,
                 "commute_days_week":days, "diet_pattern":diet, "housing_type":housing,
                 "monthly_budget_inr":budget, "electricity_kwh_month":electricity,
                 "ac_usage":ac, "waste_segregation":segregation,
+                "preferences":{"water_usage":water_usage,"food_waste":food_waste,"shopping_habit":shopping_habit,"public_transport_available":public_transport_available,"shops_in_person":shops_in_person,"composting_possible":composting_possible},
             })
             st.session_state.latest_response_id = response_id
-            diet_tonnes={"Mixed diet":.9,"Mostly plant-based":.72,"Vegetarian":.62,"Vegan":.5}[diet]
-            breakdown_tonnes={
-                "Transport":round(commute_km*days*52*.006,2),
-                "Home energy":round(electricity*12*.005,2),
-                "Food":diet_tonnes, "Shopping & waste":.6, "Flights":.18,
-            }
-            record_id=create_footprint_record(st.session_state.user_id, sum(breakdown_tonnes.values())*1000,
-                {key:value*1000 for key,value in breakdown_tonnes.items()}, response_id=response_id)
-            st.session_state.latest_footprint_record_id=record_id
-            st.success("Lifestyle response and sample footprint saved to SQLite.")
+            st.session_state.questionnaire_saved = True
+            st.success("Lifestyle response saved to SQLite. Open Carbon footprint to calculate using documented factors.")
         except Exception as exc:
             st.error(f"Could not save the questionnaire to the database: {exc}")

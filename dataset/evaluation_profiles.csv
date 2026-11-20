@@ -1,0 +1,7 @@
+scenario_id,commute,commute_km,commute_days,electricity,diet,water_usage,food_waste,shopping_habit,segregation,expected_action_ids
+commuter_car,Petrol / diesel car,16,5,220,Mixed diet,Moderate,Low,Monthly,Sometimes,TR01|TR02|TR03|TR04|TR05
+high_energy_home,Work from home,0,0,420,Mixed diet,Moderate,Low,Monthly,Sometimes,EL01|EL02|EL03|EL04|EL05|EL06
+water_conscious,Public transport,8,5,180,Vegetarian,High,Low,Monthly,Always,WA01|WA02|WA03|WA04|WA05
+food_waste_profile,Public transport,6,4,200,Mixed diet,Moderate,Often,Weekly,Sometimes,FO01|FO02|FO03|FO04|FO05|FO06
+low_waste_shopper,Public transport,5,4,190,Vegetarian,Low,Low,Weekly,Always,WM01|WM02|WM03|WM04|WM05|SH01|SH02|SH03|SH04|SH05
+frequent_buyer,,0,0,0,,Low,Rarely,Very often,Always,SH01|SH02|SH03|SH04|SH05

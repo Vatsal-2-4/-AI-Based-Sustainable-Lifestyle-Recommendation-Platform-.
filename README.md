@@ -2,7 +2,7 @@
 
 A Streamlit project that helps people explore how daily lifestyle choices relate to their estimated carbon footprint and discover practical sustainability actions. The prototype combines a lifestyle questionnaire, category based footprint view, ranked sample recommendations, and goal tracking in a clean, responsive interface.
 
-> **Project status:** Academic prototype/demo. The current interface uses sample data. Emission factor and action catalogue CSVs contain placeholder values and sources and must be verified before using the estimates as real-world guidance. Login and registration are visual demo flows and do not provide secure account authentication.
+> **Project status:** Academic prototype/demo. Dashboard cards, trends, and profile defaults include sample data. The calculator uses documented factors with partial and mixed system boundaries; it is not a complete India-specific footprint. Login and registration are demo flows and do not provide secure account authentication.
 
 ## Contents
 
@@ -49,11 +49,25 @@ General sustainability tip lists offer the same advice to everyone. Carbon calcu
 - **Login and registration screen:** interactive demo form; does not authenticate users against a server.
 - **Lifestyle questionnaire:** editable transport, diet, housing, budget, energy, waste, and location fields stored in the Streamlit session.
 - **Dashboard:** sample footprint category chart, sustainability score, summary metrics, and suggested next steps.
-- **Carbon footprint page:** editable activity inputs and illustrative category estimates with a Plotly chart.
+- **Carbon footprint page:** user-entered fuel, electricity, food, water, and waste amounts; documented-factor kg CO₂e total and category chart; separate water/waste volume charts; source notes and limitations.
 - **Recommendations page:** ranked example actions with fit details and an Add goal interaction.
 - **Progress tracking:** session-based goals, editable progress, completion controls, and a sample trend chart.
 - **Profile page:** displays the current demo profile and links to the questionnaire.
 - **Responsive visual design:** green, white, and neutral palette, shared typography, reusable components, and sidebar navigation.
+
+### Personalized content-based recommender
+
+The recommendations page now ranks a curated action catalogue using TF-IDF text features and cosine similarity. It matches profile details such as commute mode, electricity use, diet, water use, food waste, shopping frequency, and waste segregation to action descriptions and matching terms. Eligibility rules can filter actions that are unavailable to a particular user. A transparent reranking step also considers category relevance, effort, qualitative impact tier, and cost tier. The displayed match score is a profile relevance score; it is not a confidence probability or a measured carbon saving.
+
+The catalogue lives in `dataset/actions.csv`. Fields include stable action ID, category, title, description, match terms, eligibility rule, qualitative impact and cost tiers, difficulty, and source. Actions are curated from public Mission LiFE guidance and the Bureau of Energy Efficiency. No kg CO₂e reduction is shown by this model because user-specific, source-verified action savings are not yet available. See `dataset/README.md` for field definitions and caveats.
+
+Evaluate ranking against the small manually labeled scenario set with:
+
+```bash
+python -m ml.evaluate_recommender
+```
+
+The script reports Precision@5, Recall@5, NDCG@5, and catalogue coverage. The evaluation profiles and expected action IDs are project-team labels for repeatable demonstration; they are not population-level ground truth.
 
 ### Planned product capabilities
 
@@ -143,9 +157,12 @@ flowchart TD
 │   ├── repositories/              # Catalogue and persistence access
 │   └── services/                  # Footprint, recommendations, explanations, progress
 ├── ml/models/                     # Feature extraction and similarity helpers
+├── ml/evaluate_recommender.py     # Offline ranking metrics on labeled scenarios
 ├── dataset/
 │   ├── actions.csv                # Starter action catalogue schema
-│   ├── emission_factors.csv       # Starter emission factor schema
+│   ├── evaluation_profiles.csv   # Manually labeled evaluation scenarios
+│   ├── emission_factors.csv       # CEA and IPCC factor values with metadata
+│   ├── food_emission_factors.csv  # OWID/Poore-Nemecek food factors
 │   ├── raw/                       # Original source data
 │   └── processed/                 # Prepared datasets
 ├── database/
@@ -219,14 +236,14 @@ This creates the local SQLite database file. The current demo UI keeps most stat
 1. Open **Home** and choose the dashboard or questionnaire.
 2. Enter sample lifestyle details and save the profile.
 3. Review the dashboard and footprint category chart.
-4. Adjust inputs on the carbon footprint page to explore the sample estimate.
+4. Enter recent fuel, electricity, food, water, and waste amounts on the carbon footprint page.
 5. Add suggested actions as goals on the Recommendations page.
 6. Update progress or mark goals complete on the Progress tracking page.
 7. Use the sidebar at any time to move between screens.
 
 ## Data and calculation notes
 
-The current UI uses illustrative sample values so the pages can be demonstrated before the data pipeline is complete. `dataset/actions.csv` and `dataset/emission_factors.csv` are starter structures with placeholder sources and example values. Before presenting numerical estimates as factual:
+Some dashboard visuals and recommendation catalogue tiers remain demonstration data. The calculator's emission factors are documented but have different geographic and accounting boundaries. Before presenting its estimates as a complete or locally precise footprint:
 
 - Replace placeholders with authoritative, traceable sources relevant to the intended geography.
 - Store units, geography, source year, and assumptions for each factor.
@@ -234,12 +251,18 @@ The current UI uses illustrative sample values so the pages can be demonstrated 
 - Label estimates as approximate and avoid implying that they measure verified reductions.
 - Keep numerical values out of LLM-generated content; the model should only explain values supplied by the application.
 
+### Carbon calculator factors
+
+The Carbon footprint page now reads documented factors from `dataset/emission_factors.csv` and `dataset/food_emission_factors.csv`. It calculates vehicle fuel combustion from user-entered monthly petrol/diesel litres using IPCC defaults, electricity from the CEA FY 2023-24 India grid-average factor, and food from the Poore and Nemecek global per-kilogram product factors as processed by Our World in Data. The page shows factor values, links, and scope notes. Fuel and electricity factors cover direct combustion/grid CO₂, while food factors are life-cycle CO₂e; this makes the result a partial estimate with mixed boundaries.
+
+Water use and waste generation are shown as annual litres and kilograms. They are excluded from the emissions total because household-water emissions need local supply/treatment factors and waste emissions need material composition and local disposal-pathway data. The inputs are still useful for viewing resource consumption without implying an unsupported CO₂e number. Sources include the [Central Electricity Authority CO₂ Baseline Database](https://cea.nic.in/cdm-co2-baseline-database/), [IPCC 2006 Guidelines for Mobile Combustion](https://www.ipcc-nggip.iges.or.jp/public/2006gl/pdf/2_Volume2/V2_3_Ch3_Mobile_Combustion.pdf), and the [Our World in Data food emissions dataset](https://ourworldindata.org/grapher/ghg-per-kg-poore?tab=table).
+
 ## Current limitations
 
 - Login/register is a UI demonstration and does not securely create or verify accounts.
 - Profile, form, and goal data are session based and may reset when the session ends.
-- Sample footprint and savings values are not validated environmental measurements.
-- The SQLite schema and backend services are scaffolding and are not yet fully connected to every page.
+- Dashboard summary cards and trend-chart values are still presentation samples; use the Carbon footprint page for the documented-factor estimate.
+- Some backend services are still scaffolding and are not yet connected to every page.
 - AI explanation generation is a placeholder; connect a provider only after adding secret management, output validation, and fallback behavior.
 - The current content-similarity helper is optional and does not replace eligibility rules or transparent ranking.
 

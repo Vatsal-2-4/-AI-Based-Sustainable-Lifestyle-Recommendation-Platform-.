@@ -1,9 +1,9 @@
 import streamlit as st
-from database.repository import get_or_create_user, get_user, get_progress
+from database.repository import get_or_create_user, get_user, get_progress, get_latest_lifestyle_response
 
 def initialize_state():
     st.session_state.setdefault("user_email", "demo@example.local")
-    st.session_state.setdefault("profile", {"name":"Demo User", "city":"Bengaluru", "commute":"Petrol / diesel car", "commute_km":18, "commute_days":5, "diet":"Mixed diet", "housing":"Rented apartment", "budget":1000, "electricity":240, "ac":"Some days", "segregation":"Sometimes"})
+    st.session_state.setdefault("profile", {"name":"Demo User", "city":"Bengaluru", "commute":"Petrol / diesel car", "commute_km":18, "commute_days":5, "diet":"Mixed diet", "housing":"Rented apartment", "budget":1000, "electricity":240, "ac":"Some days", "segregation":"Sometimes", "water_usage":"Moderate", "food_waste":"Sometimes", "shopping_habit":"Monthly", "public_transport_available":True, "shops_in_person":True, "composting_possible":False})
     st.session_state.setdefault("goals", [])
     st.session_state.setdefault("authenticated", False)
     st.session_state.setdefault("page", "Dashboard")
@@ -12,6 +12,17 @@ def initialize_state():
     user = get_user(user_id)
     if user:
         st.session_state.profile["name"] = user["display_name"]
+    if not st.session_state.get("db_profile_loaded", False):
+        response=get_latest_lifestyle_response(user_id)
+        if response:
+            st.session_state.latest_response_id=response["response_id"]
+            st.session_state.profile.update({
+                "city":response["city"],"commute":response["commute_mode"],"commute_km":response["commute_km_day"],
+                "commute_days":response["commute_days_week"],"diet":response["diet_pattern"],"housing":response["housing_type"],
+                "budget":response["monthly_budget_inr"],"electricity":response["electricity_kwh_month"],"ac":response["ac_usage"],
+                "segregation":response["waste_segregation"],**response["preferences"]})
+            st.session_state.questionnaire_saved=True
+        st.session_state.db_profile_loaded=True
     if not st.session_state.get("db_goals_loaded", False):
         st.session_state.goals = [{"db_id":row["progress_id"], "title":row["goal_title"], "category":row["category"], "progress":row["progress_percent"]/100, "done":row["status"]=="completed"} for row in get_progress(user_id)]
         st.session_state.db_goals_loaded = True

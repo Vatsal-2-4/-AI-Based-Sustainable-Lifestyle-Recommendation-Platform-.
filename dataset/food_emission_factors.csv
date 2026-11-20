@@ -1,0 +1,21 @@
+food_key,food_label,kg_co2e_per_kg_product,unit,geographic_scope,data_year,source
+beef,Beef (beef herd),99.48,kgCO2e/kg,Global mean,2010,Poore & Nemecek 2018 processed by Our World in Data
+lamb,Lamb and mutton,39.72,kgCO2e/kg,Global mean,2010,Poore & Nemecek 2018 processed by Our World in Data
+dairy_beef,Beef (dairy herd),33.30,kgCO2e/kg,Global mean,2010,Poore & Nemecek 2018 processed by Our World in Data
+prawns,Prawns (farmed),26.87,kgCO2e/kg,Global mean,2010,Poore & Nemecek 2018 processed by Our World in Data
+cheese,Cheese,23.88,kgCO2e/kg,Global mean,2010,Poore & Nemecek 2018 processed by Our World in Data
+pork,Pig meat,12.31,kgCO2e/kg,Global mean,2010,Poore & Nemecek 2018 processed by Our World in Data
+poultry,Poultry meat,9.87,kgCO2e/kg,Global mean,2010,Poore & Nemecek 2018 processed by Our World in Data
+eggs,Eggs,4.67,kgCO2e/kg,Global mean,2010,Poore & Nemecek 2018 processed by Our World in Data
+rice,Rice,4.45,kgCO2e/kg,Global mean,2010,Poore & Nemecek 2018 processed by Our World in Data
+groundnuts,Groundnuts,3.23,kgCO2e/kg,Global mean,2010,Poore & Nemecek 2018 processed by Our World in Data
+tofu,Tofu (soybeans),3.16,kgCO2e/kg,Global mean,2010,Poore & Nemecek 2018 processed by Our World in Data
+milk,Milk,3.15,kgCO2e/kg,Global mean,2010,Poore & Nemecek 2018 processed by Our World in Data
+tomatoes,Tomatoes,2.09,kgCO2e/kg,Global mean,2010,Poore & Nemecek 2018 processed by Our World in Data
+maize,Maize,1.70,kgCO2e/kg,Global mean,2010,Poore & Nemecek 2018 processed by Our World in Data
+wheat,Wheat and rye,1.57,kgCO2e/kg,Global mean,2010,Poore & Nemecek 2018 processed by Our World in Data
+pulses,Other pulses,1.79,kgCO2e/kg,Global mean,2010,Poore & Nemecek 2018 processed by Our World in Data
+peas,Peas,0.98,kgCO2e/kg,Global mean,2010,Poore & Nemecek 2018 processed by Our World in Data
+bananas,Bananas,0.86,kgCO2e/kg,Global mean,2010,Poore & Nemecek 2018 processed by Our World in Data
+potatoes,Potatoes,0.46,kgCO2e/kg,Global mean,2010,Poore & Nemecek 2018 processed by Our World in Data
+vegetables,Other vegetables,0.53,kgCO2e/kg,Global mean,2010,Poore & Nemecek 2018 processed by Our World in Data
