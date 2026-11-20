@@ -1,0 +1,80 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="sky" x2="0" y2="1">
+      <stop stop-color="#d8ff51" offset="0"/>
+      <stop stop-color="#e6ffa0" offset=".26"/>
+      <stop stop-color="#d8e8cf" offset=".54"/>
+      <stop stop-color="#b8cfb0" offset=".72"/>
+      <stop stop-color="#78966d" offset="1"/>
+    </linearGradient>
+    <linearGradient id="sunlit" x2="0" y2="1">
+      <stop stop-color="#f7ffdb" stop-opacity=".88"/>
+      <stop stop-color="#f4f6dc" stop-opacity=".2" offset="1"/>
+    </linearGradient>
+    <linearGradient id="meadow" x2="0" y2="1">
+      <stop stop-color="#a2bd71"/>
+      <stop stop-color="#557d3c" offset=".42"/>
+      <stop stop-color="#193b26" offset="1"/>
+    </linearGradient>
+    <linearGradient id="foreground" x2="0" y2="1">
+      <stop stop-color="#54753b"/>
+      <stop stop-color="#173322" offset=".58"/>
+      <stop stop-color="#0b2118" offset="1"/>
+    </linearGradient>
+    <radialGradient id="glow">
+      <stop stop-color="#fffbd5" stop-opacity=".94"/>
+      <stop stop-color="#fffbd5" stop-opacity="0" offset="1"/>
+    </radialGradient>
+    <filter id="soft" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="24"/>
+    </filter>
+    <filter id="haze" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="7"/>
+    </filter>
+  </defs>
+  <rect width="1600" height="1000" fill="url(#sky)"/>
+  <ellipse cx="800" cy="460" rx="610" ry="290" fill="url(#glow)"/>
+  <g fill="#fff" opacity=".5" filter="url(#soft)">
+    <ellipse cx="1160" cy="280" rx="200" ry="58"/>
+    <ellipse cx="1280" cy="250" rx="150" ry="82"/>
+    <ellipse cx="990" cy="320" rx="160" ry="46"/>
+    <ellipse cx="430" cy="350" rx="180" ry="46"/>
+    <ellipse cx="520" cy="320" rx="120" ry="60"/>
+  </g>
+  <path d="M0 555 Q180 508 330 548 T650 540 T960 548 T1280 525 T1600 548 V760 H0Z" fill="#849b67" opacity=".46" filter="url(#haze)"/>
+  <path d="M0 610 Q260 540 510 598 T1010 582 T1600 592 V1000 H0Z" fill="url(#meadow)"/>
+  <path d="M0 652 Q230 590 420 638 T830 624 T1230 618 T1600 628 V720 Q1300 676 1060 717 T560 694 T0 735Z" fill="#b4c87b" opacity=".58"/>
+  <path d="M0 718 Q250 674 475 720 T925 704 T1320 708 T1600 690 V1000 H0Z" fill="url(#foreground)"/>
+  <path d="M0 760 Q210 735 410 770 T860 755 T1260 776 T1600 750" fill="none" stroke="#d9e797" stroke-opacity=".45" stroke-width="11"/>
+  <path d="M0 820 Q260 785 510 830 T1010 810 T1600 825" fill="none" stroke="#a5c56a" stroke-opacity=".32" stroke-width="8"/>
+  <!-- Distant hedgerow -->
+  <g fill="#456347" opacity=".72">
+    <circle cx="95" cy="592" r="32"/><circle cx="137" cy="578" r="41"/><circle cx="181" cy="596" r="26"/>
+    <circle cx="268" cy="587" r="30"/><circle cx="304" cy="572" r="42"/><circle cx="347" cy="592" r="25"/>
+    <circle cx="1190" cy="590" r="26"/><circle cx="1230" cy="570" r="42"/><circle cx="1277" cy="591" r="29"/>
+  </g>
+  <!-- Soft right-side tree line -->
+  <g fill="#385a3b" opacity=".86">
+    <path d="M1330 660 Q1370 500 1410 650 Q1460 430 1510 660 Q1550 500 1600 655 V735 H1330Z"/>
+    <path d="M1170 655 Q1200 535 1240 650 Q1280 490 1325 658 V710 H1170Z"/>
+  </g>
+  <!-- Left bamboo canopy and trunks -->
+  <g stroke="#284b2b" stroke-linecap="round" fill="none">
+    <path d="M82 0 Q170 150 125 580" stroke-width="20"/>
+    <path d="M166 0 Q206 220 191 575" stroke-width="13"/>
+    <path d="M248 0 Q226 250 282 586" stroke-width="11"/>
+    <path d="M15 105 Q180 120 330 80 M32 188 Q190 200 350 153 M78 277 Q190 286 336 243" stroke-width="7"/>
+  </g>
+  <g fill="#426b35" opacity=".9">
+    <ellipse cx="70" cy="88" rx="88" ry="25" transform="rotate(22 70 88)"/>
+    <ellipse cx="195" cy="70" rx="112" ry="30" transform="rotate(-12 195 70)"/>
+    <ellipse cx="328" cy="118" rx="94" ry="24" transform="rotate(18 328 118)"/>
+    <ellipse cx="92" cy="210" rx="120" ry="28" transform="rotate(-18 92 210)"/>
+    <ellipse cx="245" cy="226" rx="105" ry="28" transform="rotate(10 245 226)"/>
+    <ellipse cx="115" cy="332" rx="120" ry="26" transform="rotate(14 115 332)"/>
+  </g>
+  <g stroke="#bacd72" stroke-linecap="round" opacity=".62">
+    <path d="M42 785l-36-88M95 835l-20-112M174 788l25-110M238 884l-12-125M339 840l40-132M450 904l-3-115M590 845l23-110M705 930l-22-137M850 850l36-128M1000 918l-2-138M1140 840l42-105M1280 910l-26-132M1430 865l45-125M1552 930l-9-140" fill="none" stroke-width="8"/>
+  </g>
+  <rect width="1600" height="1000" fill="url(#sunlit)" opacity=".12"/>
+</svg>

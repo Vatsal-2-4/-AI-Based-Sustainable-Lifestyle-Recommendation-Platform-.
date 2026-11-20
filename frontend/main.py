@@ -26,6 +26,17 @@ def run_app():
     if pending in PAGES:
         st.session_state.page=pending
         st.session_state.nav=pending
+    try:
+        requested_page=st.query_params.get("page")
+        if requested_page in PAGES:
+            st.session_state.page=requested_page
+            st.session_state.nav=requested_page
+        if requested_page is not None:
+            del st.query_params["page"]
+    except Exception:
+        logging.exception("Could not resolve landing-page navigation")
+    if st.session_state.page=="Home":
+        st.markdown("<style>[data-testid='stSidebar']{display:none!important}[data-testid='stHeader']{background:transparent!important}</style>",unsafe_allow_html=True)
     with st.sidebar:
         st.markdown('<div class="brand">🌿 evergreen<span>.</span></div>', unsafe_allow_html=True)
         st.caption("SUSTAINABLE LIVING PLATFORM")
