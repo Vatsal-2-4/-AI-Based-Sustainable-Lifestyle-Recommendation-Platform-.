@@ -5,6 +5,8 @@ import hashlib
 import secrets
 import hmac
 import math
+import tempfile
+from pathlib import Path
 from database.connection import get_connection
 from database.schema import initialize_database, SCHEMA
 
@@ -189,20 +191,25 @@ def backup_user_database(user_id):
         ("ai_recommendations","SELECT * FROM ai_recommendations WHERE user_id=? ORDER BY recommendation_id"),
         ("user_progress","SELECT * FROM user_progress WHERE user_id=? ORDER BY progress_id"),
     )
-    with get_connection() as source, sqlite3.connect(":memory:") as backup:
-        backup.executescript(SCHEMA)
-        backup.execute("PRAGMA foreign_keys = ON")
-        for table,query in tables:
-            rows=source.execute(query,(int(user_id),)).fetchall()
-            if not rows:
-                if table=="users": raise ValueError("Account not found")
-                continue
-            columns=list(rows[0].keys())
-            placeholders=",".join("?" for _ in columns)
-            column_sql=",".join(f'"{column}"' for column in columns)
-            backup.executemany(f'INSERT INTO "{table}" ({column_sql}) VALUES ({placeholders})',[[row[column] for column in columns] for row in rows])
-        backup.commit()
-        return backup.serialize()
+    with get_connection() as source, tempfile.TemporaryDirectory(prefix="evergreen-backup-") as temp_dir:
+        backup_path=Path(temp_dir)/"account-backup.sqlite3"
+        backup=sqlite3.connect(backup_path)
+        try:
+            backup.executescript(SCHEMA)
+            backup.execute("PRAGMA foreign_keys = ON")
+            for table,query in tables:
+                rows=source.execute(query,(int(user_id),)).fetchall()
+                if not rows:
+                    if table=="users": raise ValueError("Account not found")
+                    continue
+                columns=list(rows[0].keys())
+                placeholders=",".join("?" for _ in columns)
+                column_sql=",".join(f'"{column}"' for column in columns)
+                backup.executemany(f'INSERT INTO "{table}" ({column_sql}) VALUES ({placeholders})',[[row[column] for column in columns] for row in rows])
+            backup.commit()
+        finally:
+            backup.close()
+        return backup_path.read_bytes()
 
 def reset_demo_data(user_id):
     """Clear records for the built-in demo profile while retaining the demo account."""
