@@ -114,6 +114,43 @@ def _category_relevance(profile):
     shopping_score={"very often":.95,"often":.8,"weekly":.75,"monthly":.45,"rarely":.2}.get(shopping,.4)
     return {"Transportation":transport,"Electricity":electricity_score,"Water":water_score,"Food":food_score,"Waste":waste_score,"Shopping":shopping_score}
 
+def _matched_habits(profile, category):
+    """Explain the user-provided profile signals used for this action category."""
+    details=[]
+    if category=="Transportation":
+        mode=profile.get("commute",profile.get("commute_mode"))
+        distance=profile.get("commute_km",profile.get("commute_km_day",0))
+        days=profile.get("commute_days",profile.get("commute_days_week",0))
+        if mode: details.append(f"Main commute: {mode}")
+        if float(distance or 0)>0 and int(days or 0)>0:
+            details.append(f"Commute: {distance:g} km/day on {days} days/week")
+        if profile.get("public_transport_available") is True:
+            details.append("Public transport is marked practical for you")
+    elif category=="Electricity":
+        electricity=profile.get("electricity",profile.get("electricity_kwh_month",0))
+        if float(electricity or 0)>0: details.append(f"Home electricity: {electricity:g} kWh/month")
+        ac=profile.get("ac",profile.get("ac_usage"))
+        if ac: details.append(f"Air conditioning: {ac}")
+    elif category=="Water":
+        value=profile.get("water_usage",profile.get("shower_habit"))
+        if value: details.append(f"Reported water use: {value}")
+    elif category=="Food":
+        diet=profile.get("diet",profile.get("diet_pattern"))
+        waste=profile.get("food_waste")
+        if diet: details.append(f"Diet pattern: {diet}")
+        if waste: details.append(f"Food waste frequency: {waste}")
+    elif category=="Waste":
+        segregation=profile.get("segregation",profile.get("waste_segregation"))
+        waste=profile.get("food_waste")
+        if segregation: details.append(f"Waste sorting: {segregation}")
+        if waste: details.append(f"Food waste frequency: {waste}")
+    elif category=="Shopping":
+        frequency=profile.get("shopping_habit",profile.get("shopping_frequency"))
+        if frequency: details.append(f"Shopping frequency: {frequency}")
+        if profile.get("shops_in_person") is not None:
+            details.append("You shop in person" if profile["shops_in_person"] else "You do not usually shop in person")
+    return details or [f"General sustainable-lifestyle profile signals for {category.lower()}"]
+
 def recommend(profile, top_n=6, catalogue=None):
     """Return personalized actions, ranked by profile-item TF-IDF cosine similarity.
 
@@ -143,13 +180,11 @@ def recommend(profile, top_n=6, catalogue=None):
         budget=float(profile.get("budget",profile.get("monthly_budget_inr",0)) or 0)
         cost_fit=1.0 if row["cost_tier"]=="low" or budget>=2500 else .65 if row["cost_tier"]=="medium" else .3
         score=.62*float(similarity)+.22*category+.08*difficulty+.05*impact+.03*cost_fit
-        reasons=[]
-        if similarity>0: reasons.append(f"Profile text match: {similarity:.0%}")
-        if category>=.65: reasons.append(f"Your profile indicates a stronger {row['category'].lower()} focus")
-        elif category>=.4: reasons.append(f"Relevant to your {row['category'].lower()} habits")
-        if cost_fit>=.95: reasons.append("Low-cost or no-cost to try")
         item={key:row[key] for key in ("action_id","category","title","description","eligibility","impact_tier","cost_tier","difficulty","source_name","source_url")}
-        item.update({"similarity":round(float(similarity),4),"relevance_score":round(score,4),"reason":" · ".join(reasons) or "General sustainable-lifestyle match","rank_position":0})
+        habits=_matched_habits(profile,row["category"])
+        reason=f"Matched to your {row['category'].lower()} profile: " + "; ".join(habits) + f". Catalogue text match: {similarity:.0%}; category-fit signal: {category:.0%}."
+        if cost_fit>=.95: reason+=" Low-cost or no-cost to try."
+        item.update({"similarity":round(float(similarity),4),"category_fit":round(category,4),"matched_habits":habits,"relevance_score":round(score,4),"reason":reason,"rank_position":0})
         ranked.append(item)
     ranked.sort(key=lambda item:(-item["relevance_score"],-item["similarity"],item["action_id"]))
     for rank,item in enumerate(ranked[:top_n],1): item["rank_position"]=rank

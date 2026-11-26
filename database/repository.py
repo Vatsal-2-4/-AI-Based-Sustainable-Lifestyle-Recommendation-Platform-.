@@ -227,7 +227,9 @@ def create_progress(user_id, title, category, recommendation_id=None):
 def get_progress(user_id):
     _ready()
     with get_connection() as db:
-        return [dict(r) for r in db.execute("SELECT * FROM user_progress WHERE user_id=? ORDER BY status='completed',updated_at DESC,progress_id DESC",(int(user_id),)).fetchall()]
+        return [dict(r) for r in db.execute("""SELECT p.*,r.action_key,r.explanation AS recommendation_explanation
+          FROM user_progress p LEFT JOIN ai_recommendations r ON r.recommendation_id=p.recommendation_id AND r.user_id=p.user_id
+          WHERE p.user_id=? ORDER BY p.status='completed',p.updated_at DESC,p.progress_id DESC""",(int(user_id),)).fetchall()]
 
 def update_progress(user_id, progress_id, *, progress_percent=None, status=None, notes=None):
     _ready(); fields=[]; values=[]

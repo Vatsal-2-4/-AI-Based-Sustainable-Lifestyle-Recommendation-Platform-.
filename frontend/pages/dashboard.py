@@ -15,6 +15,34 @@ def _navigate(page):
     st.session_state.page=page
     st.session_state.nav=page
 
+def _render_first_steps(records, goals, saved_actions):
+    steps=[
+        {"title":"Build your profile","detail":"Share your commute, home, and everyday habits.","page":"Questionnaire","done":bool(st.session_state.get("questionnaire_saved",False)),"done_label":"Profile saved"},
+        {"title":"Estimate your footprint","detail":"Enter activity amounts and review the factor notes.","page":"Carbon footprint","done":bool(records),"done_label":"Estimate saved"},
+        {"title":"Choose a first action","detail":"Save one matched recommendation as a goal.","page":"Recommendations","done":bool(saved_actions or any(g.get("recommendation_id") or g.get("action_key") for g in goals)),"done_label":"Action saved"},
+    ]
+    next_step=next((step for step in steps if not step["done"]),None)
+    if not next_step:
+        return
+    completed=sum(step["done"] for step in steps)
+    with st.container(border=True):
+        heading,progress_col=st.columns([2,1])
+        with heading:
+            st.markdown("### A simple path to your first action")
+            st.caption("Three short steps turn your everyday habits into a useful next move. You can change your answers later.")
+        with progress_col:
+            st.progress(completed/len(steps),text=f"{completed} of {len(steps)} steps complete")
+        step_cols=st.columns(3)
+        for index,(col,step) in enumerate(zip(step_cols,steps),1):
+            with col:
+                state="✓ Complete" if step["done"] else f"STEP {index}"
+                st.markdown(f"**{state}**")
+                st.markdown(f"**{step['title']}**")
+                st.caption(step["done_label"] if step["done"] else step["detail"])
+                button_label="Review" if step["done"] else "Open step"
+                st.button(button_label,key=f"onboarding_step_{index}",on_click=_navigate,args=(step["page"],),use_container_width=True)
+        st.button(f"Continue · {next_step['title']} →",key="onboarding_continue",type="primary",on_click=_navigate,args=(next_step["page"],))
+
 
 def _goal_by_id(goal_id):
     return next((goal for goal in st.session_state.goals if goal["db_id"]==goal_id),None)
@@ -140,6 +168,7 @@ def render():
         suggested_actions=[]
 
     saved_actions=[row for row in recommendations if row["status"]=="saved"]
+    _render_first_steps(records,goals,saved_actions)
     active=sum(g.get("status","completed" if g["done"] else "active")=="active" for g in goals)
     paused=sum(g.get("status")=="paused" for g in goals)
     completed=sum(g["done"] for g in goals)

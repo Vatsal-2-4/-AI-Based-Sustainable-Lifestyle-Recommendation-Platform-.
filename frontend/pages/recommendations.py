@@ -1,6 +1,22 @@
 import streamlit as st
 from backend.services.recommendation_service import recommend_for_profile
-from database.repository import save_recommendation, update_recommendation_status, create_progress
+from database.repository import save_recommendation, update_recommendation_status, create_progress, update_progress
+
+def _open_progress():
+    st.session_state.page="Progress tracking"
+    st.session_state.nav="Progress tracking"
+
+def _complete_goal(progress_id):
+    goal=next((g for g in st.session_state.goals if g.get("db_id")==progress_id),None)
+    if not goal: return
+    try:
+        update_progress(st.session_state.user_id,progress_id,progress_percent=100,status="completed")
+        goal.update(progress=1.0,status="completed",done=True)
+        st.session_state["goal_saved_message"]=f"Completed '{goal['title']}'."
+    except ValueError as exc:
+        st.session_state["goal_save_error"]=str(exc)
+    except Exception:
+        st.session_state["goal_save_error"]="Could not complete this goal. Check the local database and try again."
 
 def _add_goal(action, rank):
     try:
@@ -12,9 +28,10 @@ def _add_goal(action, rank):
             "relevance_score":action["relevance_score"], "rank_position":rank,
         },record_id=st.session_state.get("latest_footprint_record_id"))
         update_recommendation_status(st.session_state.user_id,recommendation_id,"saved")
-        if not any(g["title"]==action["title"] for g in st.session_state.goals):
+        existing=next((g for g in st.session_state.goals if g.get("action_key")==action["action_id"] or g["title"]==action["title"]),None)
+        if not existing:
             progress_id=create_progress(st.session_state.user_id,action["title"],action["category"],recommendation_id)
-            st.session_state.goals.append({"db_id":progress_id,"title":action["title"],"category":action["category"],"progress":0.0,"status":"active","done":False})
+            st.session_state.goals.append({"db_id":progress_id,"recommendation_id":recommendation_id,"action_key":action["action_id"],"title":action["title"],"category":action["category"],"progress":0.0,"status":"active","done":False})
         st.session_state["goal_saved_message"]=f"Saved '{action['title']}' to your goals."
     except ValueError as exc:
         st.session_state["goal_save_error"]=str(exc)
@@ -44,20 +61,36 @@ def render():
         return
     for index,action in enumerate(actions,1):
         with st.container(border=True):
-            already_added=any(g["title"]==action["title"] for g in st.session_state.goals)
+            saved_goal=next((g for g in st.session_state.goals if g.get("action_key")==action["action_id"] or g["title"]==action["title"]),None)
+            already_added=saved_goal is not None
             left,right=st.columns([5,1])
             with left:
                 st.markdown(f"<span class='tag'>#{index} · {action['category']} · {action['impact_tier'].title()} impact tier</span>",unsafe_allow_html=True)
                 st.subheader(action["title"])
                 st.write(action["description"])
-                st.caption(f"Why this matched: {action['reason']}")
+                st.caption("Why it matched: " + "; ".join(action["matched_habits"]))
                 st.progress(action["relevance_score"],text=f"Profile relevance · {action['relevance_score']:.0%} (not confidence or impact)")
                 st.caption(f"Effort: {action['difficulty']}/5 · Cost tier: {action['cost_tier'].title()}")
-                with st.expander("Why this action and its source"):
-                    st.write(action["reason"])
-                    st.write(f"Applicability rule: `{action.get('eligibility','general')}`. Confirm this action fits your circumstances before starting.")
+                with st.expander("Why this matched · model details and source"):
+                    st.markdown("**Profile details used for this category**")
+                    for habit in action["matched_habits"]: st.markdown(f"- {habit}")
+                    st.caption(f"Catalogue text similarity: {action['similarity']:.0%} · Category fit: {action['category_fit']:.0%}. Profile relevance also includes effort, impact tier, and cost tier. These are matching signals, not confidence or savings.")
+                    eligibility=action.get("eligibility","general")
+                    eligibility_text={"public_transport_available":"The questionnaire says public transport is practical for your commute.","short_trip_suitable":"This action is for short trips where walking or cycling is suitable.","uses_private_vehicle":"This action applies to a private vehicle commute.","has_non_plant_based_meals":"This action is shown for profiles that include non-plant-based meals.","food_waste_reported":"This action is shown when some food waste is reported.","composting_possible":"This action requires access to composting.","shops_in_person":"This action applies to in-person shopping."}.get(eligibility,"This action passed the catalogue's applicability checks for your profile.")
+                    st.write(eligibility_text+" Review the action and decide whether it fits your circumstances.")
                     st.caption("The catalogue does not provide validated, user-specific emissions savings for this action.")
                     st.markdown(f"Source: [{action['source_name']}]({action['source_url']})")
             with right:
-                st.button("In your goals" if already_added else "Add goal",key=f"add_goal_{action['action_id']}",disabled=already_added,use_container_width=True,on_click=_add_goal,args=(action,index))
+                if not already_added:
+                    st.button("Add goal",key=f"add_goal_{action['action_id']}",use_container_width=True,on_click=_add_goal,args=(action,index))
+                else:
+                    st.success("Goal saved")
+                    if saved_goal.get("status")=="completed":
+                        st.caption("Completed ✓")
+                    elif saved_goal.get("status")=="paused":
+                        st.caption("Paused")
+                    else:
+                        st.progress(saved_goal.get("progress",0),text=f"Progress · {saved_goal.get('progress',0):.0%}")
+                        st.button("Mark complete",key=f"complete_recommendation_{saved_goal['db_id']}",use_container_width=True,on_click=_complete_goal,args=(saved_goal["db_id"],))
+                    st.button("Track progress →",key=f"track_recommendation_{saved_goal['db_id']}",use_container_width=True,on_click=_open_progress)
     st.caption("No kg CO₂e savings are displayed because the catalogue does not yet contain validated, user-specific savings calculations.")

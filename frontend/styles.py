@@ -33,7 +33,7 @@ def initialize_state():
             st.session_state.pop("latest_footprint_record_id",None)
         st.session_state.db_latest_footprint_loaded=True
     if not st.session_state.get("db_goals_loaded", False):
-        st.session_state.goals = [{"db_id":row["progress_id"], "title":row["goal_title"], "category":row["category"], "progress":row["progress_percent"]/100, "status":row["status"], "done":row["status"]=="completed"} for row in get_progress(user_id)]
+        st.session_state.goals = [{"db_id":row["progress_id"], "recommendation_id":row.get("recommendation_id"), "action_key":row.get("action_key"), "title":row["goal_title"], "category":row["category"], "progress":row["progress_percent"]/100, "status":row["status"], "done":row["status"]=="completed"} for row in get_progress(user_id)]
         st.session_state.db_goals_loaded = True
 
 def load_styles():
