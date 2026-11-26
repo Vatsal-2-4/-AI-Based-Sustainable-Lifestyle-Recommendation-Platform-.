@@ -9,7 +9,7 @@ FOOD_INPUTS={
     "poultry":"Poultry","prawns":"Farmed prawns","eggs":"Eggs",
     "milk":"Milk","cheese":"Cheese","rice":"Rice","wheat":"Wheat and rye",
     "pulses":"Pulses","tofu":"Tofu","vegetables":"Other vegetables",
-    "tomatoes":"Tomatoes","fruit":"Bananas",
+    "tomatoes":"Tomatoes","bananas":"Bananas",
 }
 
 def _prepare_input_state(user_id, profile):
@@ -21,6 +21,9 @@ def _prepare_input_state(user_id, profile):
     snapshot=records[0].get("input_snapshot",{}) if records else {}
     transport=snapshot.get("transport",{})
     food=snapshot.get("food_kg_week",{})
+    # Earlier UI versions stored bananas under "fruit"; migrate that saved input.
+    if "fruit" in food and "bananas" not in food:
+        food={**food,"bananas":food["fruit"]}
     waste=snapshot.get("waste_kg_week",{})
     defaults={"petrol":transport.get("petrol_l_month",0.0),"diesel":transport.get("diesel_l_month",0.0),
               "electricity":snapshot.get("electricity_kwh_month",float(profile.get("electricity",0) or 0) if st.session_state.get("questionnaire_saved",False) else 0.0),
@@ -37,39 +40,49 @@ def _go_to_recommendations():
     st.session_state.nav="Recommendations"
 
 def render():
-    st.title("Carbon footprint calculator")
-    st.caption("Enter recent activity amounts to estimate an annual footprint from documented factors.")
-    st.info("The CO₂e total covers the categories with available factors below. Water and waste are shown as resource indicators and are not added to that total because reliable, locally matched household factors are not available for these inputs.")
+    st.markdown("""<section class="calc-hero"><div class="calc-kicker">EVERGREEN · PERSONAL IMPACT</div><h1>Make your everyday<br>impact visible.</h1><p>Adjust a few familiar habits and explore a transparent estimate of your annual footprint. Your results update as you go.</p></section>""",unsafe_allow_html=True)
     profile=st.session_state.get("profile",{})
     prefix=_prepare_input_state(st.session_state.user_id,profile)
-    left,right=st.columns([1,1.15],gap="large")
+    st.markdown("<div class='calc-content'></div>",unsafe_allow_html=True)
+    left,right=st.columns([1.05,.95],gap="large")
     with left:
-        st.subheader("Activity inputs")
-        st.markdown("**🚗 Transportation**")
-        st.caption("Use fuel purchased or consumed for your own vehicles. Shared/public transit is not included in this fuel-based calculation.")
-        a,b=st.columns(2)
-        with a: petrol=st.number_input("Petrol (litres/month)",min_value=0.0,max_value=1000.0,step=1.0,key=prefix+"petrol")
-        with b: diesel=st.number_input("Diesel (litres/month)",min_value=0.0,max_value=1000.0,step=1.0,key=prefix+"diesel")
-        st.markdown("**⚡ Electricity**")
-        st.caption("Prefilled from your saved lifestyle profile when available. Edit this value if your recent bill differs.")
-        electricity=st.number_input("Household electricity (kWh/month)",min_value=0.0,max_value=100000.0,step=10.0,key=prefix+"electricity")
-        st.markdown("**💧 Water use**")
-        water=st.number_input("Water use (litres/person/day)",min_value=0.0,max_value=5000.0,step=10.0,key=prefix+"water",help="Use a metered or household estimate divided by the number of residents.")
-        st.markdown("**🥗 Food consumption**")
-        st.caption("Enter approximate kilograms purchased or eaten per week. Zero means no amount was entered.")
-        food={}
-        with st.expander("Enter food quantities by product",expanded=True):
-            foods=list(FOOD_INPUTS.items())
-            for start in range(0,len(foods),3):
-                cols=st.columns(3)
-                for col,(key,label) in zip(cols,foods[start:start+3]):
-                    with col: food[key]=st.number_input(f"{label} (kg/week)",min_value=0.0,max_value=200.0,step=0.1,key=prefix+"food_"+key)
-        st.markdown("**🗑️ Waste generation**")
-        waste={}
-        a,b,c=st.columns(3)
-        with a: waste["food scraps"]=st.number_input("Food waste (kg/week)",0.0,500.0,step=.1,key=prefix+"waste_food scraps")
-        with b: waste["dry recyclables"]=st.number_input("Dry recyclables (kg/week)",0.0,500.0,step=.1,key=prefix+"waste_dry recyclables")
-        with c: waste["residual waste"]=st.number_input("Other waste (kg/week)",0.0,500.0,step=.1,key=prefix+"waste_residual waste")
+        st.markdown("<div class='calc-section-label'><span>✳</span> Quick estimate</div><p style='margin:.45rem 0 1rem;color:#aebaa6;font-size:.82rem'>Start with monthly fuel and electricity. The estimate updates as you type.</p>",unsafe_allow_html=True)
+        st.caption("Use one month's bill and a typical month of fuel. Example: 120 kWh and 8 litres. Saved values are prefilled when available; no commute or diet amounts are guessed.")
+        with st.container(border=True):
+            st.markdown("**🚗 Transport · monthly fuel for your own vehicle**")
+            a,b=st.columns(2)
+            with a: petrol=st.number_input("Petrol · litres/month",min_value=0.0,max_value=1000.0,step=1.0,key=prefix+"petrol",help="Example: about 8 litres in a typical month.")
+            with b: diesel=st.number_input("Diesel · litres/month",min_value=0.0,max_value=1000.0,step=1.0,key=prefix+"diesel",help="Example: about 12 litres in a typical month.")
+            st.markdown("**⚡ Home · electricity from your bill**")
+            electricity=st.number_input("Electricity · kWh/month",min_value=0.0,max_value=100000.0,step=10.0,key=prefix+"electricity",help="Use one month's kWh from your bill. Your saved profile value is prefilled when available.")
+        st.info("Food, water, and waste values from a previous saved estimate stay included and can be reviewed in the details below. If no saved amounts exist, they are left unreported; none are guessed from your lifestyle profile.")
+        with st.expander("Add detail to your estimate · food, water & waste",expanded=False):
+            detail_tab,food_tab,waste_tab=st.tabs(["⌂  Water","🥗  Food","♻  Waste"])
+            with detail_tab:
+                st.caption("Water is reported as a volume only. No locally matched household emissions factor is applied.")
+                water=st.number_input("Water · litres/person/day",min_value=0.0,max_value=5000.0,step=10.0,key=prefix+"water",help="Example: divide a household meter estimate by the number of residents.")
+            with food_tab:
+                st.caption("Approximate food purchased or eaten. Enter kilograms per week; for example, 0.5 kg of rice each week.")
+                foods=list(FOOD_INPUTS.items())
+                for start in range(0,len(foods),3):
+                    cols=st.columns(3)
+                    for col,(key,label) in zip(cols,foods[start:start+3]):
+                        with col:
+                            st.number_input(f"{label} · kg/week",min_value=0.0,max_value=200.0,step=0.1,key=prefix+"food_"+key,help=f"Approximate kilograms of {label.lower()} eaten or bought in a week.")
+            with waste_tab:
+                st.caption("Track weekly material amounts as a resource indicator. Waste is not added to the emissions total.")
+                a,b,c=st.columns(3)
+                with a: st.number_input("Food waste · kg/week",0.0,500.0,step=.1,key=prefix+"waste_food scraps")
+                with b: st.number_input("Recyclables · kg/week",0.0,500.0,step=.1,key=prefix+"waste_dry recyclables")
+                with c: st.number_input("Other waste · kg/week",0.0,500.0,step=.1,key=prefix+"waste_residual waste")
+        st.caption("ⓘ Water and waste are shown separately because reliable, locally matched household emission factors are not available for these inputs.")
+    # Streamlit renders collapsed expander and tab contents, keeping all widget values available.
+    electricity=st.session_state.get(prefix+"electricity",float(profile.get("electricity",0) or 0))
+    water=st.session_state.get(prefix+"water",0.0)
+    food={key:st.session_state.get(prefix+"food_"+key,0.0) for key in FOOD_INPUTS}
+    waste={key:st.session_state.get(prefix+"waste_"+key,0.0) for key in ("food scraps","dry recyclables","residual waste")}
+    petrol=st.session_state.get(prefix+"petrol",0.0)
+    diesel=st.session_state.get(prefix+"diesel",0.0)
     inputs={"petrol_l_month":petrol,"diesel_l_month":diesel,"electricity_kwh_month":electricity,"water_l_person_day":water,"food_kg_week":food,"waste_kg_week":waste}
     try:
         result=calculate_footprint(inputs)
@@ -79,20 +92,41 @@ def render():
     except Exception:
         st.error("The calculator could not load its factor data. Try again or check the local factor files.")
         return
+    missing_emissions=[]
+    if petrol+diesel<=0: missing_emissions.append("Transport fuel (petrol or diesel litres per month)")
+    if electricity<=0: missing_emissions.append("Electricity (kWh per month)")
+    if sum(food.values())<=0: missing_emissions.append("Food product quantities (kg per week)")
+    missing_indicators=[]
+    if water<=0: missing_indicators.append("Water use (litres per person per day)")
+    if sum(waste.values())<=0: missing_indicators.append("Waste amounts (kg per week)")
     with right:
-        st.subheader("Your estimated annual emissions")
-        st.metric("Estimated total from included categories",f"{result['total_kg_co2e']:,.0f} kg CO₂e",help="Partial total: transportation combustion CO₂ + grid electricity CO₂ + food life-cycle CO₂e")
-        st.caption(f"Partial estimate · {result['total_kg_co2e']/1000:.2f} tonnes CO₂e/year · factor set {result['factor_version']} · Based on the activity values shown at left")
-        st.caption("Included: petrol/diesel combustion, grid electricity, and entered food products. Not included as emissions: water and waste; also outside this estimate are public transit, housing fuels, goods, and services.")
+        st.markdown(f"<div class='calc-live'><div class='calc-live-label'>Estimated annual footprint</div><div class='calc-live-value'>{result['total_kg_co2e']:,.0f}<span style='font:500 1rem system-ui;color:#e5eddd'> kg CO₂e</span></div><div class='calc-live-note'>{result['total_kg_co2e']/1000:.2f} tonnes/year · updates with your inputs</div></div>",unsafe_allow_html=True)
+        st.markdown(f"<div style='height:12px'></div><div class='calc-mini'><div class='calc-mini-label'>ESTIMATE SCOPE</div><div class='calc-mini-value'>Partial · {result['factor_version']}</div></div>",unsafe_allow_html=True)
+        if missing_emissions or missing_indicators:
+            with st.expander(f"Input check · {len(missing_emissions)+len(missing_indicators)} values unreported",expanded=bool(missing_emissions)):
+                if missing_emissions:
+                    st.markdown("**Emissions categories with no amount entered**")
+                    for item in missing_emissions: st.markdown(f"- {item}")
+                if missing_indicators:
+                    st.markdown("**Optional resource indicators with no amount entered**")
+                    for item in missing_indicators: st.markdown(f"- {item}")
+                st.caption("A value of 0 is treated as no reported activity. The result is partial and does not mean the unentered activities have no impact.")
+        st.caption("Annualized from monthly fuel/electricity and weekly food. Transport covers direct fuel combustion; electricity uses an India grid average; food factors are global product averages. Water and waste are tracked separately and excluded from CO₂e.")
+        st.markdown("<div style='height:14px'></div><div class='calc-section-label'>Where your estimate comes from</div>",unsafe_allow_html=True)
         emissions=pd.DataFrame([{"Category":k,"kg CO₂e/year":v} for k,v in result["category_kg_co2e"].items() if v>0])
         if not emissions.empty:
-            fig=px.bar(emissions,x="Category",y="kg CO₂e/year",color="Category",color_discrete_sequence=["#20764b","#67a97c","#a8cfad"])
-            fig.update_layout(showlegend=False,margin=dict(t=8,b=8,l=0,r=0),paper_bgcolor="rgba(0,0,0,0)",plot_bgcolor="rgba(0,0,0,0)",font=dict(family="DM Sans",color="#24352a"),height=320)
+            fig=px.pie(emissions,names="Category",values="kg CO₂e/year",hole=.68,color_discrete_sequence=["#d6ff4f","#79bd73","#4c8659"])
+            fig.update_traces(textposition="outside",textinfo="label+percent",marker=dict(line=dict(color="#1b211b",width=3)),hole=0.67)
+            fig.update_layout(showlegend=False,margin=dict(t=12,b=18,l=30,r=30),paper_bgcolor="rgba(0,0,0,0)",plot_bgcolor="rgba(0,0,0,0)",font=dict(family="DM Sans",color="#e5ebdf"),height=300,annotations=[dict(text="ANNUAL<br>CO₂e",x=.5,y=.5,showarrow=False,font=dict(size=13,color="#c6d0bd"))])
             st.plotly_chart(fig,use_container_width=True)
         else:
             st.warning("Enter your activity amounts to see category emissions.")
-        st.markdown("**Category breakdown**")
-        st.dataframe(pd.DataFrame([{"Category":k,"Estimated kg CO₂e/year":v,"Share":f"{v/result['total_kg_co2e']:.1%}" if result["total_kg_co2e"] else "—"} for k,v in result["category_kg_co2e"].items()]),hide_index=True,use_container_width=True)
+        cards=st.columns(3)
+        icons={"Transportation":"↗","Electricity":"ϟ","Food":"◌"}
+        for col,(category,value) in zip(cards,result["category_kg_co2e"].items()):
+            with col:
+                share=f"{value/result['total_kg_co2e']:.0%} share" if result["total_kg_co2e"] else "No activity"
+                st.markdown(f"<div class='calc-mini'><div class='calc-mini-label'>{icons.get(category,'✳')} &nbsp;{category.upper()}</div><div class='calc-mini-value'>{value:,.0f} kg</div><div class='calc-mini-label'>{share}</div></div>",unsafe_allow_html=True)
         if st.button("Save this estimate",type="primary",use_container_width=True):
             try:
                 snapshot={"schema_version":1,"transport":{"petrol_l_month":petrol,"diesel_l_month":diesel},"electricity_kwh_month":electricity,"water_l_person_day":water,"food_kg_week":food,"waste_kg_week":waste}
