@@ -100,6 +100,7 @@ def _confirm_remove(goal_index):
 
 
 def render():
+    st.markdown("<div class='page-kicker'>EVERGREEN · YOUR JOURNEY</div>",unsafe_allow_html=True)
     st.title("Progress tracking")
     st.caption("Build steady habits, one action at a time.")
     goals=st.session_state.goals

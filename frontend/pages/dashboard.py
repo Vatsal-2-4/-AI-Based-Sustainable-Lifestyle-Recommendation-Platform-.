@@ -147,6 +147,7 @@ def _estimate_insights(records,selected):
 
 def render():
     name=st.session_state.profile.get("name") or "there"
+    st.markdown("<div class='page-kicker'>EVERGREEN · YOUR OVERVIEW</div>",unsafe_allow_html=True)
     st.title(f"Your sustainability dashboard, {name}")
     st.caption("A clear view of your saved estimates, habits, and next steps.")
     if st.session_state.get("dashboard_error"):

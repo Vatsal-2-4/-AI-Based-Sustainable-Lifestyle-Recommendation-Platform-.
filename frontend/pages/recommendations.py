@@ -39,6 +39,7 @@ def _add_goal(action, rank):
         st.session_state["goal_save_error"]="Could not save this action. Check the local database and try again."
 
 def render():
+    st.markdown("<div class='page-kicker'>EVERGREEN · PERSONALIZED ACTIONS</div>",unsafe_allow_html=True)
     st.title("Personalized recommendations")
     st.caption("Actions are matched to the habits and constraints in your lifestyle profile.")
     if st.session_state.get("goal_saved_message"):
