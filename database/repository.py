@@ -6,14 +6,14 @@ import secrets
 import hmac
 import math
 from database.connection import get_connection
-from database.schema import initialize_database
+from database.schema import initialize_database, SCHEMA
 
 def _ready():
     initialize_database()
 
 def _valid_text(value, name, limit=240):
     if not isinstance(value, str) or not value.strip() or len(value.strip()) > limit:
-        raise ValueError(f"{name} must contain 1 to {limit} characters")
+        raise ValueError(f"Enter {name.lower()} using 1 to {limit} characters")
     return value.strip()
 
 def _number(value, name, minimum=0, maximum=None):
@@ -21,8 +21,9 @@ def _number(value, name, minimum=0, maximum=None):
         value = float(value)
     except (TypeError, ValueError) as exc:
         raise ValueError(f"{name} must be a number") from exc
-    if not math.isfinite(value) or value < minimum or (maximum is not None and value > maximum):
-        raise ValueError(f"{name} must be between {minimum} and {maximum if maximum is not None else 'unlimited'}")
+    if not math.isfinite(value): raise ValueError(f"{name} must be a finite number")
+    if value < minimum: raise ValueError(f"{name} cannot be less than {minimum}")
+    if maximum is not None and value > maximum: raise ValueError(f"{name} cannot be greater than {maximum}")
     return value
 
 def _password_digest(password, salt):
@@ -177,6 +178,44 @@ def export_user_data(user_id):
                 recommendation["saving_estimate_available"]=False
         progress=[dict(r) for r in db.execute("SELECT * FROM user_progress WHERE user_id=? ORDER BY progress_id",(int(user_id),)).fetchall()]
     return {"account":dict(user),"lifestyle_responses":responses,"footprint_estimates":footprints,"recommendations":recommendations,"goals":progress}
+
+def backup_user_database(user_id):
+    """Create a portable SQLite backup containing only this user's records."""
+    _ready()
+    tables=(
+        ("users","SELECT user_id,email,display_name,created_at,updated_at FROM users WHERE user_id=?"),
+        ("lifestyle_questionnaire_responses","SELECT * FROM lifestyle_questionnaire_responses WHERE user_id=? ORDER BY response_id"),
+        ("carbon_footprint_records","SELECT * FROM carbon_footprint_records WHERE user_id=? ORDER BY record_id"),
+        ("ai_recommendations","SELECT * FROM ai_recommendations WHERE user_id=? ORDER BY recommendation_id"),
+        ("user_progress","SELECT * FROM user_progress WHERE user_id=? ORDER BY progress_id"),
+    )
+    with get_connection() as source, sqlite3.connect(":memory:") as backup:
+        backup.executescript(SCHEMA)
+        backup.execute("PRAGMA foreign_keys = ON")
+        for table,query in tables:
+            rows=source.execute(query,(int(user_id),)).fetchall()
+            if not rows:
+                if table=="users": raise ValueError("Account not found")
+                continue
+            columns=list(rows[0].keys())
+            placeholders=",".join("?" for _ in columns)
+            column_sql=",".join(f'"{column}"' for column in columns)
+            backup.executemany(f'INSERT INTO "{table}" ({column_sql}) VALUES ({placeholders})',[[row[column] for column in columns] for row in rows])
+        backup.commit()
+        return backup.serialize()
+
+def reset_demo_data(user_id):
+    """Clear records for the built-in demo profile while retaining the demo account."""
+    _ready()
+    with get_connection() as db:
+        user=db.execute("SELECT email FROM users WHERE user_id=?",(int(user_id),)).fetchone()
+        if not user or user["email"].lower()!="demo@example.local":
+            raise ValueError("Reset is available only for the built-in demo profile")
+        deleted={}
+        for table in ("user_progress","ai_recommendations","carbon_footprint_records","lifestyle_questionnaire_responses"):
+            cursor=db.execute(f"DELETE FROM {table} WHERE user_id=?",(int(user_id),))
+            deleted[table]=cursor.rowcount
+        return deleted
 
 def delete_user(user_id):
     """Delete a user's profile and linked application records."""

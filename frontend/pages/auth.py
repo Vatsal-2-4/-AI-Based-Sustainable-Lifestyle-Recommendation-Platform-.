@@ -16,15 +16,18 @@ def render():
             confirm=st.text_input("Confirm password",type="password") if mode=="Create account" else None
             submitted=st.form_submit_button(mode,type="primary",use_container_width=True)
         if submitted:
-            if not email or not password: st.error("Enter an email and password to continue.")
+            if not email.strip(): st.error("Enter your email address to continue.")
+            elif mode=="Create account" and not name.strip(): st.error("Enter your name to create an account.")
+            elif not password: st.error("Enter your password to continue.")
+            elif mode=="Create account" and len(password)<12: st.error("Choose a password with at least 12 characters.")
             elif mode=="Create account" and password!=confirm: st.error("Passwords do not match.")
             else:
                 try:
                     if mode=="Create account":
-                        user_id=create_user(email,name,password)
-                        user={"user_id":user_id,"email":email,"display_name":name}
+                        user_id=create_user(email.strip(),name.strip(),password)
+                        user={"user_id":user_id,"email":email.strip(),"display_name":name.strip()}
                     else:
-                        user=authenticate_user(email,password)
+                        user=authenticate_user(email.strip(),password)
                         if not user: raise ValueError("Email or password is incorrect.")
                     # Replace the previous account's in-memory profile and cached record IDs.
                     st.session_state.profile={**DEFAULT_PROFILE,"name":user["display_name"]}

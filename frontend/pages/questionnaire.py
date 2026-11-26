@@ -17,16 +17,16 @@ def render():
         st.subheader("🚲 Transport")
         a,b,c=st.columns(3)
         with a: commute=st.selectbox("Main commute mode",["Petrol / diesel car","Public transport","Two-wheeler","Walk or cycle","Work from home"],index=["Petrol / diesel car","Public transport","Two-wheeler","Walk or cycle","Work from home"].index(p['commute']),key=widget_prefix+"commute")
-        with b: commute_km=st.number_input("Commute distance (km/day)",0,250,p['commute_km'],key=widget_prefix+"commute_km")
-        with c: days=st.slider("Commute days per week",0,7,p['commute_days'],key=widget_prefix+"commute_days")
+        with b: commute_km=st.number_input("Commute distance (km/day)",0,250,p['commute_km'],key=widget_prefix+"commute_km",help="Enter your typical total commute distance for a day, from 0 to 250 km.")
+        with c: days=st.slider("Commute days per week",0,7,p['commute_days'],key=widget_prefix+"commute_days",help="Choose a whole number from 0 to 7.")
         st.subheader("🥗 Food and home")
         a,b,c=st.columns(3)
         with a: diet=st.selectbox("Diet pattern",["Mixed diet","Mostly plant-based","Vegetarian","Vegan"],index=["Mixed diet","Mostly plant-based","Vegetarian","Vegan"].index(p['diet']),key=widget_prefix+"diet")
         with b: housing=st.selectbox("Housing type",["Owned house","Rented apartment","Owned apartment"],index=["Owned house","Rented apartment","Owned apartment"].index(p['housing']),key=widget_prefix+"housing")
-        with c: budget=st.number_input("Monthly change budget (₹)",0,100000,p['budget'],step=500,key=widget_prefix+"budget")
+        with c: budget=st.number_input("Monthly change budget (₹)",0,100000,p['budget'],step=500,key=widget_prefix+"budget",help="Enter a non-negative amount up to ₹100,000 per month.")
         st.subheader("🏡 Energy and waste")
         a,b,c=st.columns(3)
-        with a: electricity=st.number_input("Monthly electricity (kWh)",0,5000,p['electricity'],key=widget_prefix+"electricity")
+        with a: electricity=st.number_input("Monthly electricity (kWh)",0,5000,p['electricity'],key=widget_prefix+"electricity",help="Copy the kWh from your bill. Enter a value from 0 to 5,000.")
         with b: ac=st.selectbox("Air conditioning use",["Rarely","Some days","Most days"],index=["Rarely","Some days","Most days"].index(p['ac']),key=widget_prefix+"ac")
         with c: segregation=st.selectbox("Waste segregation",["Always","Sometimes","Not yet"],index=["Always","Sometimes","Not yet"].index(p['segregation']),key=widget_prefix+"segregation")
         st.subheader("💧 Water, food waste, and shopping")
@@ -42,24 +42,32 @@ def render():
         name=st.text_input("Name",p['name'],key=widget_prefix+"name"); city=st.text_input("City",p['city'],key=widget_prefix+"city")
         saved=st.form_submit_button("Save lifestyle profile →",type="primary",use_container_width=True)
     if saved:
-        st.session_state.profile.update(name=name,city=city,commute=commute,commute_km=commute_km,commute_days=days,diet=diet,housing=housing,budget=budget,electricity=electricity,ac=ac,segregation=segregation,water_usage=water_usage,food_waste=food_waste,shopping_habit=shopping_habit,public_transport_available=public_transport_available,shops_in_person=shops_in_person,composting_possible=composting_possible)
-        try:
-            update_user(st.session_state.user_id,display_name=name)
-            response_id = save_lifestyle_response(st.session_state.user_id, {
-                "city":city, "commute_mode":commute, "commute_km_day":commute_km,
-                "commute_days_week":days, "diet_pattern":diet, "housing_type":housing,
-                "monthly_budget_inr":budget, "electricity_kwh_month":electricity,
-                "ac_usage":ac, "waste_segregation":segregation,
-                "preferences":{"water_usage":water_usage,"food_waste":food_waste,"shopping_habit":shopping_habit,"public_transport_available":public_transport_available,"shops_in_person":shops_in_person,"composting_possible":composting_possible},
-            })
-            st.session_state.latest_response_id = response_id
-            st.session_state.questionnaire_saved = True
-            st.session_state.db_profile_loaded=True
-            st.session_state[f"calc_{st.session_state.user_id}_electricity"]=electricity
-            st.success("Lifestyle profile saved. Your monthly electricity value will be prefilled in the calculator; other activity amounts are not inferred.")
-        except ValueError as exc:
-            st.error(str(exc))
-        except Exception:
-            st.error("We could not save your profile right now. Your answers are still on this page; try saving again.")
+        validation_errors=[]
+        if not name.strip(): validation_errors.append("Enter your name (1–120 characters).")
+        elif len(name.strip())>120: validation_errors.append("Your name must be 120 characters or fewer.")
+        if not city.strip(): validation_errors.append("Enter your city (1–120 characters).")
+        elif len(city.strip())>120: validation_errors.append("Your city must be 120 characters or fewer.")
+        if validation_errors:
+            for message in validation_errors: st.error(message)
+        else:
+            st.session_state.profile.update(name=name.strip(),city=city.strip(),commute=commute,commute_km=commute_km,commute_days=days,diet=diet,housing=housing,budget=budget,electricity=electricity,ac=ac,segregation=segregation,water_usage=water_usage,food_waste=food_waste,shopping_habit=shopping_habit,public_transport_available=public_transport_available,shops_in_person=shops_in_person,composting_possible=composting_possible)
+            try:
+                update_user(st.session_state.user_id,display_name=name.strip())
+                response_id = save_lifestyle_response(st.session_state.user_id, {
+                    "city":city.strip(), "commute_mode":commute, "commute_km_day":commute_km,
+                    "commute_days_week":days, "diet_pattern":diet, "housing_type":housing,
+                    "monthly_budget_inr":budget, "electricity_kwh_month":electricity,
+                    "ac_usage":ac, "waste_segregation":segregation,
+                    "preferences":{"water_usage":water_usage,"food_waste":food_waste,"shopping_habit":shopping_habit,"public_transport_available":public_transport_available,"shops_in_person":shops_in_person,"composting_possible":composting_possible},
+                })
+                st.session_state.latest_response_id = response_id
+                st.session_state.questionnaire_saved = True
+                st.session_state.db_profile_loaded=True
+                st.session_state[f"calc_{st.session_state.user_id}_electricity"]=electricity
+                st.success("Lifestyle profile saved. Your monthly electricity value will be prefilled in the calculator; other activity amounts are not inferred.")
+            except ValueError as exc:
+                st.error(str(exc))
+            except Exception:
+                st.error("We could not save your profile right now. Your answers are still on this page; try saving again.")
     if st.session_state.get("questionnaire_saved",False):
         st.button("Continue to carbon footprint →",type="primary",on_click=_go_to_calculator)
