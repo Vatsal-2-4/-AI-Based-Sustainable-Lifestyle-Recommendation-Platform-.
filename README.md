@@ -1,200 +1,125 @@
 # AI-Based Sustainable Lifestyle Recommendation Platform
 
-A Streamlit project that helps people explore how daily lifestyle choices relate to their estimated carbon footprint and discover practical sustainability actions. The prototype combines a lifestyle questionnaire, category based footprint view, content-ranked recommendations, and SQLite-backed goal tracking in a clean interface.
+A student-built Streamlit application for exploring everyday sustainability habits. It stores a lifestyle profile, calculates a partial annualized carbon estimate from entered activity, ranks practical actions against the profile, and lets users track selected actions as goals.
 
-> **Project status:** Academic prototype/demo. The dashboard and progress charts use saved application data. The calculator uses documented factors with partial and mixed system boundaries; it is not a complete India-specific footprint. Passwords are salted PBKDF2 hashes in SQLite, but this local prototype has no account recovery, login rate limiting, or production deployment controls.
+> **Project status:** B.Tech mini-project prototype. The footprint is a partial estimate with mixed accounting boundaries. Recommendation relevance is not a confidence score or a measured emissions saving. Do not use the app as a verified inventory or public-facing environmental claim.
 
 ## Contents
 
-- [Project overview](#project-overview)
-- [Problem](#problem)
-- [Objectives](#objectives)
 - [Features](#features)
-- [System architecture](#system-architecture)
-- [Data flow](#data-flow)
-- [Technology stack](#technology-stack)
+- [System design](#system-design)
+- [Technology](#technology)
 - [Project structure](#project-structure)
-- [Getting started](#getting-started)
-- [How to use the app](#how-to-use-the-app)
-- [Data and calculation notes](#data-and-calculation-notes)
-- [Current limitations](#current-limitations)
-- [Roadmap](#roadmap)
-- [Academic alignment](#academic-alignment)
-- [Contributing](#contributing)
-
-## Project overview
-
-The AI-Based Sustainable Lifestyle Recommendation Platform is a student project concept for turning environmental awareness into manageable personal action. It aims to estimate an individual’s annual greenhouse gas footprint in kilograms of carbon dioxide equivalent (kg CO₂e) across lifestyle categories such as transport, food, household energy, shopping, and waste. It then aims to rank practical actions based on their estimated impact and fit with a person’s budget, housing, location, and preferences.
-
-The intended system uses deterministic, documented calculations for footprint and savings. Machine learning can support content-based action matching, while a language model can provide plain-language explanations grounded in catalogue facts. The model should not invent or calculate the numerical impact values.
-
-## Problem
-
-General sustainability tip lists offer the same advice to everyone. Carbon calculators may provide a total without clear next steps, while habit tracking tools may not explain which actions matter most. Users need an accessible way to understand the major sources of their footprint and identify changes that are both relevant and feasible for their circumstances.
-
-## Objectives
-
-- Estimate an annual lifestyle footprint across multiple categories.
-- Present a category-wise breakdown and explain the assumptions behind estimates.
-- Recommend actions ordered by potential impact and user suitability.
-- Include approximate cost, difficulty, applicability, and evidence for each action.
-- Let users save chosen actions as goals and track progress.
-- Evaluate calculation accuracy, recommendation relevance, usability, and response time.
+- [Run locally](#run-locally)
+- [Data sources and calculations](#data-sources-and-calculations)
+- [Recommendation model](#recommendation-model)
+- [Data storage and privacy](#data-storage-and-privacy)
+- [Limitations](#limitations)
+- [Classroom demo walkthrough](#classroom-demo-walkthrough)
+- [Evaluation and checks](#evaluation-and-checks)
 
 ## Features
 
-### Available in the current UI demo
+- Responsive Evergreen landing page and sidebar navigation.
+- Lifestyle questionnaire for commute, household energy, food, water, waste, and shopping habits.
+- Dashboard with saved estimates, goals, and recent activity.
+- Carbon calculator with a quick path for monthly fuel and electricity, plus optional food, water, and waste details.
+- Annualized category emissions for transport fuel, grid electricity, and food; separate physical-volume indicators for water and waste.
+- Personal recommendations ranked against profile habits, with explanations, eligibility notes, and catalogue sources.
+- Save a recommendation as a goal, update progress, pause it, or mark it complete.
+- Progress chart and comparison tools that exclude estimates with different factor sets, input formats, or reported emissions categories.
+- Profile data downloads in JSON and a per-account SQLite backup. Password credentials are omitted.
+- A confirmed reset option for the built-in demo profile only.
 
-- **Home page:** interactive Get started, How it works, and Data and privacy tabs, guided next-step actions, and direct navigation to key tasks.
-- **Login and registration screen:** local SQLite accounts with salted PBKDF2 password hashes, plus a sidebar sign-out action; no external identity provider or account recovery.
-- **Lifestyle questionnaire:** editable transport, diet, housing, budget, energy, waste, and location fields saved in SQLite.
-- **Dashboard:** selectable saved estimates, category explorer, water/waste indicators, compatible estimate history, and inline goal progress/completion; empty states prompt the user to create data.
-- **Carbon footprint page:** user-entered fuel, electricity, food, water, and waste amounts; supported profile electricity is prefilled; activity inputs are saved with estimates; documented-factor kg CO₂e total and category chart; separate water/waste volume charts; source notes and limitations.
-- **Recommendations page:** ranked example actions with fit details and an Add goal interaction.
-- **Progress tracking:** SQLite-backed goals, editable progress and completion, with a trend chart after multiple estimates are saved.
-- **Profile page:** displays the current saved profile and links to questionnaire editing, JSON data export, and account/data deletion.
-- **Responsive visual design:** green, white, and neutral palette, shared typography, reusable components, and sidebar navigation.
+## System design
 
-### Personalized content-based recommender
-
-The recommendations page now ranks a curated action catalogue using TF-IDF text features and cosine similarity. It matches profile details such as commute mode, electricity use, diet, water use, food waste, shopping frequency, and waste segregation to action descriptions and matching terms. Eligibility rules can filter actions that are unavailable to a particular user. A transparent reranking step also considers category relevance, effort, qualitative impact tier, and cost tier. The displayed match score is a profile relevance score; it is not a confidence probability or a measured carbon saving.
-
-The catalogue lives in `dataset/actions.csv`. Fields include stable action ID, category, title, description, match terms, eligibility rule, qualitative impact and cost tiers, difficulty, and source. Actions are curated from public Mission LiFE guidance and the Bureau of Energy Efficiency. No kg CO₂e reduction is shown by this model because user-specific, source-verified action savings are not yet available. See `dataset/README.md` for field definitions and caveats.
-
-Evaluate ranking against the small manually labeled scenario set with:
-
-```bash
-python -m ml.evaluate_recommender
-```
-
-Run database, account, calculator, and saved-input smoke checks with:
-
-```bash
-python -m unittest discover -s tests -v
-```
-
-The script reports Precision@5, Recall@5, NDCG@5, and catalogue coverage. The evaluation profiles and expected action IDs are project-team labels for repeatable demonstration; they are not population-level ground truth.
-
-### Current limitations and next steps
-
-- Verified India-relevant emission factors with sources, units, geography, and publication year.
-- User-specific verified action savings and regional footprint factors.
-- Account recovery, login throttling, and deployment-grade session security.
-- A defined, evidence-backed sustainability score and report export.
-- Evaluation with hand-calculated profiles and usability feedback.
-
-## System architecture
-
-The project uses a simple modular monolith. Streamlit provides the interface, Python modules contain calculation and recommendation logic, CSV files provide action and factor data, and SQLite persists users, questionnaire responses, estimates, recommendations, and goals. A separate web API or microservice deployment is not required for the mini project.
+The application is a small modular monolith; it runs as one local Streamlit process and does not require a separate API server.
 
 ```mermaid
-flowchart TD
+flowchart LR
     U[User] --> UI[Streamlit pages]
-    UI --> V[Input validation]
-    V --> P[Profile data]
-    P --> F[Footprint calculation service]
-    EF[Emission factors dataset] --> F
-    F --> R[Footprint breakdown]
-    R --> RF[Action eligibility filtering]
-    AC[Action catalogue] --> RF
-    RF --> RS[Recommendation scoring]
-    RS --> EX[Optional grounded explanation service]
-    EX --> UI
-    UI --> GO[Goal and progress service]
-    GO --> DB[(SQLite database)]
-    P --> DB
-    R --> DB
+    UI --> S[Python application services]
+    S --> ML[TF-IDF and cosine similarity]
+    S --> EF[Emission factor CSVs]
+    S --> AC[Action catalogue CSV]
+    S --> DB[(Local SQLite database)]
+    ML --> UI
+    EF --> UI
+    AC --> UI
+    DB --> UI
 ```
 
-### Component responsibilities
+- `frontend/` contains the landing page, questionnaire, calculator, dashboard, recommendations, progress, and profile screens.
+- `backend/services/` contains the footprint and recommendation application services.
+- `ml/models/content_recommender.py` filters and ranks catalogue actions.
+- `dataset/` contains action, factor, and evaluation CSVs.
+- `database/` contains the SQLite schema, connection helper, and validated data operations.
 
-- **Frontend (`frontend/`):** Streamlit page rendering, navigation, styling, and reusable UI components. It gathers input and displays outputs from application logic.
-- **Backend (`backend/`):** profile data structures, footprint calculations, recommendation ranking, explanation orchestration, progress operations, and data repository access.
-- **Machine learning (`ml/`):** optional feature preparation and content similarity helpers. The first usable recommender can remain rule based and explainable.
-- **Dataset (`dataset/`):** action catalogue and emission factor source files. Values require verification before use for real estimates.
-- **Database (`database/`):** SQLite connection, schema, initializer, and future migration scripts.
-- **Utilities (`utils/`):** shared input validation and logging helpers.
-- **Assets (`assets/`):** images, illustrations, logos, and icons used by the interface.
+## Technology
 
-## Data flow
-
-1. The user enters lifestyle details through the Streamlit questionnaire or calculator.
-2. The application validates units and acceptable ranges.
-3. A footprint service applies appropriate emission factors to activity data and calculates category totals.
-4. The recommendation service removes actions that do not apply to the user, then scores and ranks eligible actions.
-5. The interface presents the footprint and action list. User-selected goals and progress updates are saved to SQLite.
-
-## Technology stack
-
-| Technology | Use |
+| Technology | Role |
 |---|---|
-| Python | Application and business logic |
-| Streamlit | Interactive web interface and navigation |
-| pandas | Tabular data and catalogue handling |
-| NumPy | Numerical helpers for analysis and scoring |
-| scikit-learn | Optional text feature vectorization and similarity |
+| Python | Application and calculation logic |
+| Streamlit | Interactive UI and page navigation |
+| Pandas | Loading and shaping CSV/table data |
+| NumPy | Numerical helpers used by the recommender |
+| Scikit-learn | TF-IDF features and cosine similarity |
 | Plotly | Interactive charts |
-| SQLite | Lightweight local persistence |
+| SQLite | Local profile, estimate, recommendation, and goal storage |
 
 ## Project structure
 
 ```text
 .
 ├── app.py                         # Streamlit entry point
-├── requirements.txt               # Python package dependencies
-├── prd.md                         # Product requirements document
+├── requirements.txt               # Runtime dependencies
+├── README.md                      # Project, setup, data, and demo guide
+├── prd.md                         # Product requirements and proposed improvements
 ├── frontend/
-│   ├── main.py                    # Sidebar navigation and page routing
-│   ├── styles.py                  # Shared CSS and session state initialization
-│   ├── components/common.py       # Reusable metrics and page header
-│   └── pages/
-│       ├── home.py                # Landing page
-│       ├── auth.py                # Local registration and sign-in UI
-│       ├── questionnaire.py       # Lifestyle inputs
-│       ├── dashboard.py           # Summary metrics and charts
-│       ├── recommendations.py    # Content-ranked action catalogue
-│       ├── calculator.py          # Editable footprint estimate
-│       ├── progress.py            # Goal and progress interface
-│       └── profile.py             # Demo profile view
+│   ├── main.py                    # Page routing and sidebar
+│   ├── styles.py                  # Shared styling and session initialization
+│   ├── components/common.py       # Reusable UI elements
+│   └── pages/                     # Home, auth, questionnaire, dashboard,
+│                                  # calculator, recommendations, progress, profile
 ├── backend/
-│   ├── models.py                  # Profile data structures
-│   ├── repositories/              # Catalogue and persistence access
-│   └── services/                  # Footprint, recommendations, explanations, progress
-├── ml/models/                     # Feature extraction and similarity helpers
-├── ml/evaluate_recommender.py     # Offline ranking metrics on labeled scenarios
+│   ├── models.py                  # Application data structures
+│   ├── repositories/              # Catalogue data access
+│   └── services/                  # Footprint, recommendation, and progress logic
+├── ml/
+│   ├── models/content_recommender.py
+│   └── evaluate_recommender.py    # Offline ranking metrics
 ├── dataset/
-│   ├── actions.csv                # Starter action catalogue schema
-│   ├── evaluation_profiles.csv   # Manually labeled evaluation scenarios
-│   ├── emission_factors.csv       # CEA and IPCC factor values with metadata
-│   ├── food_emission_factors.csv  # OWID/Poore-Nemecek food factors
-│   ├── raw/                       # Original source data
-│   └── processed/                 # Prepared datasets
+│   ├── actions.csv
+│   ├── emission_factors.csv
+│   ├── food_emission_factors.csv
+│   └── evaluation_profiles.csv
 ├── database/
-│   ├── connection.py              # SQLite connection helper
-│   ├── schema.py                  # Database tables
-│   ├── init_db.py                 # Database initialization command
-│   └── migrations/                # Future schema changes
+│   ├── connection.py              # SQLite connection factory
+│   ├── schema.py                  # Table creation and additive migrations
+│   └── repository.py              # Validated CRUD, export, and backup operations
+├── assets/images/                 # Landing-page illustration
 ├── utils/                         # Validation and logging helpers
-├── assets/                        # Images and icons
-└── tests/                          # Test suite location
+└── tests/                         # Application smoke tests
 ```
 
-## Getting started
+The database file is created locally at `database/sustainable_lifestyle.db` on first run. It is ignored by Git and should not be committed.
+
+## Run locally
 
 ### Requirements
 
-- Python 3.10 or newer recommended.
+- Python 3.10 or newer (the project is developed with Python 3.12).
 - pip.
-- Windows PowerShell, macOS Terminal, or a Linux shell.
+- Windows PowerShell, macOS, or Linux terminal.
 
-### 1. Get the project and enter its folder
+### 1. Clone the project
 
 ```bash
-git clone <repository-url>
-cd <repository-folder>
+git clone https://github.com/Vatsal-2-4/-AI-Based-Sustainable-Lifestyle-Recommendation-Platform-..git evergreen-platform
+cd evergreen-platform
 ```
 
-If you already have the project files, open a terminal in the project root (the folder containing `app.py`).
+Alternatively, open a terminal in the project directory containing `app.py`.
 
 ### 2. Create and activate a virtual environment
 
@@ -205,7 +130,7 @@ python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 ```
 
-**macOS or Linux**
+**macOS/Linux**
 
 ```bash
 python3 -m venv .venv
@@ -216,80 +141,113 @@ source .venv/bin/activate
 
 ```bash
 python -m pip install --upgrade pip
-pip install -r requirements.txt
+python -m pip install -r requirements.txt
 ```
 
-### 4. Run the Streamlit app
+### 4. Start the app
 
 ```bash
-streamlit run app.py
+python -m streamlit run app.py
 ```
 
-Streamlit prints a local URL, normally `http://localhost:8501`, which you can open in a browser. Stop the server with `Ctrl+C` in the terminal.
-
-### Optional: initialize the SQLite schema
+Open the local URL printed by Streamlit, usually `http://localhost:8501`. Stop the app with `Ctrl+C` in the terminal. The database schema is initialized automatically. To initialize it separately:
 
 ```bash
 python -m database.init_db
 ```
 
-This creates the local SQLite database file. Questionnaire responses, footprint estimates, recommendations, and goals are persisted there.
+## Data sources and calculations
 
-## How to use the app
+Factors are stored in CSV files so the application can show their units, geography, source year, and limitations alongside results.
 
-1. Open **Home** and choose the dashboard or questionnaire.
-2. Enter sample lifestyle details and save the profile.
-3. Review the dashboard and footprint category chart.
-4. Enter recent fuel, electricity, food, water, and waste amounts on the carbon footprint page.
-5. Add suggested actions as goals on the Recommendations page.
-6. Update progress or mark goals complete on the Progress tracking page.
-7. Use the sidebar at any time to move between screens.
+| Input | Source and factor | Calculation and scope |
+|---|---|---|
+| Petrol and diesel | IPCC 2006 default mobile-combustion CO₂ factors, net calorific values, and fuel densities (see links below and `dataset/emission_factors.csv`) | Monthly litres × 12 × derived kg CO₂/litre. Direct combustion CO₂ only. |
+| Electricity | Central Electricity Authority (CEA) India grid factor, FY 2023–24: **0.727 kg CO₂/kWh** | Monthly kWh × 12 × grid factor. National grid-average proxy. |
+| Food products | Poore & Nemecek (2018) factors as processed by Our World in Data (OWID); global mean product factors based on 2010 data | Entered kg/week × 52 × kg CO₂e/kg product. Product examples and values are in `dataset/food_emission_factors.csv`. |
+| Water | No household CO₂e factor is applied | Litres/person/day × 365, shown as an annual volume only. |
+| Waste | No generic disposal factor is applied | Entered kg/week × 52, shown by waste stream only. |
 
-## Data and calculation notes
+Sources:
 
-The recommendation catalogue contains curated qualitative tiers, and estimated savings are not computed. The calculator's emission factors have different geographic and accounting boundaries, so its results are partial estimates, not a complete locally precise footprint:
+- [CEA CO₂ Baseline Database](https://cea.nic.in/cdm-co2-baseline-database/)
+- [IPCC 2006 Guidelines, Volume 2, Chapter 3: Mobile Combustion](https://www.ipcc-nggip.iges.or.jp/public/2006gl/pdf/2_Volume2/V2_3_Ch3_Mobile_Combustion.pdf)
+- [IPCC 2006 Guidelines, Volume 2, Chapter 1: Introduction and fuel properties](https://www.ipcc-nggip.iges.or.jp/public/2006gl/pdf/2_Volume2/V2_1_Ch1_Introduction.pdf)
+- [OWID food emissions dataset](https://ourworldindata.org/grapher/ghg-per-kg-poore?tab=table)
+- [Poore & Nemecek, Science (2018)](https://doi.org/10.1126/science.aaq0216)
 
-- Replace placeholders with authoritative, traceable sources relevant to the intended geography.
-- Store units, geography, source year, and assumptions for each factor.
-- Validate calculations against independently hand-calculated profiles.
-- Label estimates as approximate and avoid implying that they measure verified reductions.
-- Keep numerical values out of LLM-generated content; the model should only explain values supplied by the application.
+The total adds transport combustion CO₂, grid-electricity CO₂, and food life-cycle CO₂e. These factors have different system boundaries, and food factors are global rather than India-specific. The total is therefore partial. Monthly and weekly inputs are annualized; a saved estimate is a snapshot of entered habits, not emissions measured over the year. Zero means no amount was reported, not that an activity has no impact.
 
-### Carbon calculator factors
+## Recommendation model
 
-The Carbon footprint page now reads documented factors from `dataset/emission_factors.csv` and `dataset/food_emission_factors.csv`. It calculates vehicle fuel combustion from user-entered monthly petrol/diesel litres using IPCC defaults, electricity from the CEA FY 2023-24 India grid-average factor, and food from the Poore and Nemecek global per-kilogram product factors as processed by Our World in Data. The page shows factor values, links, and scope notes. Fuel and electricity factors cover direct combustion/grid CO₂, while food factors are life-cycle CO₂e; this makes the result a partial estimate with mixed boundaries.
+The action catalogue in `dataset/actions.csv` is curated from public sustainability guidance. Each row has an ID, category, title, description, matching terms, eligibility rule, qualitative impact/cost tiers, difficulty, and source link.
 
-Water use and waste generation are shown as annual litres and kilograms. They are excluded from the emissions total because household-water emissions need local supply/treatment factors and waste emissions need material composition and local disposal-pathway data. The inputs are still useful for viewing resource consumption without implying an unsupported CO₂e number. Sources include the [Central Electricity Authority CO₂ Baseline Database](https://cea.nic.in/cdm-co2-baseline-database/), [IPCC 2006 Guidelines for Mobile Combustion](https://www.ipcc-nggip.iges.or.jp/public/2006gl/pdf/2_Volume2/V2_3_Ch3_Mobile_Combustion.pdf), and the [Our World in Data food emissions dataset](https://ourworldindata.org/grapher/ghg-per-kg-poore?tab=table).
+Catalogue references include [Mission LiFE India](https://missionlife-moefcc.nic.in/List-of-Action.php) and the [Bureau of Energy Efficiency](https://www.beeindia.gov.in/); each action row identifies its source.
 
-## Current limitations
+The content-based recommender:
 
-- Local accounts use salted password hashes, but there is no account recovery, rate limiting, or production-grade session protection.
-- Profile responses, footprint estimates, recommendations, and progress are stored in SQLite; some display preferences remain in the Streamlit session.
-- No sustainability score or verified action savings are shown because those values are not currently calculated.
-- The model provides content-based ranking; recommendations are not proof that an action will cause a quantified reduction.
+1. Case-folds and normalizes profile and action text, and adds matching phrases for common commute, energy, and lifestyle responses.
+2. Uses scikit-learn `TfidfVectorizer` with English stop words, unigrams, bigrams, and sublinear term frequency to represent the profile and action descriptions.
+3. Filters actions that fail explicit eligibility rules, such as public-transit availability or composting access.
+4. Uses cosine similarity as the main text-match signal, with a transparent reranking score:
 
-## Roadmap
+   `0.62 × text similarity + 0.22 × category fit + 0.08 × ease + 0.05 × qualitative impact tier + 0.03 × cost fit`
 
-1. Validate factors and recommendation quality with local user research and independent calculations.
-2. Add regional factors and user-specific quantified action savings where evidence supports them.
-3. Add account recovery, rate limiting, and deployment-grade security before any public deployment.
-4. Add a clearly defined evidence-backed sustainability score and report export if required.
-5. Continue improving accessibility, error handling, and test coverage.
+Category fit is a hand-set heuristic based on profile fields such as commute mode and frequency, electricity and AC use, diet, and waste habits; ease, impact tier, and cost fit are catalogue/profile rules. These weights are transparent prototype choices, not learned model parameters. The interface shows which profile details matched. The relevance score is not a probability, a sustainability score, or a prediction of kg CO₂e saved. The catalogue does not contain validated user-specific savings, so the app does not claim numerical action reductions.
+
+## Data storage and privacy
+
+- User profile responses, footprint estimates, recommendations, and goals are stored in the local SQLite file. The application has no cloud database or remote API for these records.
+- The JSON export contains the current account's application records. The SQLite download is a separate backup database containing only that account's records; both omit password credentials.
+- There is no automated restore workflow yet. Keep downloaded backups somewhere safe; the built-in app does not upload or sync them.
+- **Reset demo data** is visible for the built-in demo profile. It deletes that profile's saved questionnaire answers, estimates, recommendations, and goals after confirmation, while retaining the demo profile itself.
+- The Profile page also offers account deletion. This permanently removes that account and its linked records.
+- Local account passwords are stored as salted PBKDF2 hashes. This prototype has no password recovery, login throttling, or production-grade deployment security.
+
+## Limitations
+
+- Transport includes direct petrol/diesel combustion only; it excludes upstream fuel production, vehicle manufacture, and non-CO₂ vehicle gases. Public transit is not included in the fuel-based calculator.
+- Electricity uses an India-wide grid average, not a state-specific or time-of-day mix.
+- Food factors are global averages based on data reported for 2010 and published in 2018. Local production and product differences may be substantial.
+- Water and waste are not included in the CO₂e total because reliable locally matched factors and, for waste, material/disposal detail are unavailable in this app.
+- The estimate is not a full life-cycle assessment, a verified inventory, or proof of emissions change.
+- Recommendation relevance depends on catalogue text and manually defined rules/weights. Evaluation labels are small project-team judgments, not population ground truth.
+- Qualitative action tiers do not equal measured environmental savings. The app does not currently provide a validated sustainability score.
+
+## Classroom demo walkthrough
+
+A 5–7 minute demo can use the built-in demo profile without creating an account:
+
+1. Start the app and open **Dashboard**. Point out the guided three-step onboarding panel.
+2. Open **Questionnaire**, change one or two habits, and save. Explain that these answers drive recommendation matching.
+3. Open **Carbon footprint**. Enter a typical month of fuel and electricity. Expand the details to enter weekly food amounts. Show the live category chart and explain that water/waste remain volume indicators.
+4. Open **Emission factors and sources** and **Assumptions and limitations** to show the citations and partial-estimate boundary.
+5. Open **Recommendations**. Expand a recommendation's “Why this matched” details; add an action as a goal.
+6. Open **Progress tracking**. Update or complete the goal. Save a second footprint estimate with the same factor set and the same reported categories, then compare the two snapshots and category changes.
+7. Open **Profile** to show JSON export, account-only SQLite backup, and the confirmed demo reset option. Do not reset during a live presentation unless you intend to clear demo data.
+
+For a clean demo, use the Profile page's confirmed demo reset option before the presentation, then rerun the onboarding steps.
+
+## Evaluation and checks
+
+Run the automated smoke tests from the project root:
+
+```bash
+python -m unittest discover -s tests -v
+```
+
+Evaluate the recommender on the small labeled scenarios:
+
+```bash
+python -m ml.evaluate_recommender
+```
+
+This prints Precision@5, Recall@5, NDCG@5, and catalogue coverage. These results only describe the provided manual scenarios; they are not evidence of broad real-world recommendation quality. Calculation changes should also be checked against independent hand calculations and the factor sources.
 
 ## Academic alignment
 
-The project is intended as a third-year B.Tech Artificial Intelligence and Machine Learning mini project. Its technical scope combines data processing, transparent calculation, recommendation ranking, optional content-based similarity, database design, and a user-facing dashboard. It also relates to the United Nations Sustainable Development Goals **12: Responsible Consumption and Production** and **13: Climate Action**. Any evaluation claims should be supported by measured project results.
-
-## Contributing
-
-For a student team, a practical contribution workflow is:
-
-1. Create a branch for one feature or fix.
-2. Keep UI, services, datasets, and database changes in their respective folders.
-3. Document emission factor changes with source, units, geography, and year.
-4. Add tests for calculation or ranking behavior when extending those modules.
-5. Review changes and run the app locally before merging.
+The project is intended as a third-year B.Tech Artificial Intelligence and Machine Learning mini project. It combines data processing, a documented calculation service, content-based retrieval/ranking, relational data persistence, and an interactive dashboard. It supports classroom discussion of transparent modelling and environmental data limitations. Do not claim evaluation results that have not been run and recorded.
 
 ## License
 
-No license has been selected yet. Add a `LICENSE` file before distributing or reusing the project outside the team.
+No license has been selected. Add a `LICENSE` file before distributing or reusing the project outside the team.
