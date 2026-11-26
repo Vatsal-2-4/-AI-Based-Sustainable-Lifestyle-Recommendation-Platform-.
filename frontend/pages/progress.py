@@ -4,6 +4,51 @@ import pandas as pd
 from database.repository import update_progress, delete_progress, get_footprint_records
 
 
+EMISSION_INPUT_LABELS={"Transportation":"Transport fuel","Electricity":"Electricity","Food":"Food quantities"}
+
+def _input_coverage(record):
+    """Return emission categories with a reported, non-zero amount in a saved snapshot."""
+    snapshot=record.get("input_snapshot") or {}
+    transport=snapshot.get("transport") or {}
+    food=snapshot.get("food_kg_week") or {}
+    coverage=[]
+    try:
+        if float(transport.get("petrol_l_month",0) or 0)+float(transport.get("diesel_l_month",0) or 0)>0:
+            coverage.append("Transportation")
+        if float(snapshot.get("electricity_kwh_month",0) or 0)>0:
+            coverage.append("Electricity")
+        if sum(float(amount or 0) for amount in food.values())>0:
+            coverage.append("Food")
+    except (AttributeError,TypeError,ValueError):
+        return None
+    return tuple(coverage)
+
+
+def _incompatibility_reason(record, reference):
+    reasons=[]
+    if record.get("factor_version")!=reference.get("factor_version"):
+        reasons.append(f"factor set differs ({record.get('factor_version')} vs {reference.get('factor_version')})")
+    record_snapshot=record.get("input_snapshot") or {}
+    ref_snapshot=reference.get("input_snapshot") or {}
+    if record_snapshot.get("schema_version")!=1 or ref_snapshot.get("schema_version")!=1:
+        reasons.append("saved input details are missing or use an older format")
+    else:
+        record_coverage=_input_coverage(record)
+        ref_coverage=_input_coverage(reference)
+        if record_coverage is None or ref_coverage is None:
+            reasons.append("saved input details could not be read")
+        elif record_coverage!=ref_coverage:
+            before=", ".join(EMISSION_INPUT_LABELS[name] for name in record_coverage) or "no emissions categories reported"
+            after=", ".join(EMISSION_INPUT_LABELS[name] for name in ref_coverage) or "no emissions categories reported"
+            reasons.append(f"included categories differ ({before} vs {after})")
+    return "; ".join(reasons)
+
+
+def _navigate(page):
+    st.session_state.page=page
+    st.session_state.nav=page
+
+
 def _save_slider(goal_index):
     goal=st.session_state.goals[goal_index]
     try:
@@ -95,19 +140,65 @@ def render():
                 confirm_cols[1].button("Keep goal",key=f"cancel_remove_{goal['db_id']}",on_click=_cancel_remove,use_container_width=True)
     st.subheader("Saved footprint estimates")
     records=get_footprint_records(st.session_state.user_id,limit=20)
-    if records:
-        current_version=records[0]["factor_version"]
-        comparable=[r for r in reversed(records) if r["factor_version"]==current_version and r["input_snapshot"].get("schema_version")==1]
+    if not records:
+        st.info("Your saved footprint trend will appear here after you save an estimate.")
+        st.button("Create your first estimate →",key="progress_first_estimate",type="primary",on_click=_navigate,args=("Carbon footprint",))
     else:
-        current_version=None; comparable=[]
-    if len(comparable)<2:
-        if any(r["factor_version"]!=current_version or r["input_snapshot"].get("schema_version")!=1 for r in records):
-            st.info("A trend needs at least two estimates with the same factor set and saved input format. Older or differently versioned estimates remain available on Carbon footprint.")
+        reference=records[0]
+        comparable=[r for r in records if not _incompatibility_reason(r,reference)]
+        comparable=list(reversed(comparable))
+        if len(comparable)>=2:
+            st.markdown("#### Trend in compatible annualized estimates")
+            st.caption(f"All points use factor set **{reference['factor_version']}**, the same saved-input format, and the same reported emissions categories. Values are annual estimates calculated from monthly fuel/electricity and weekly food inputs; dates show when each estimate was saved, not emissions measured during that calendar period.")
+            history=pd.DataFrame([{"Saved":pd.to_datetime(r["created_at"]),"Estimate ID":r["record_id"],"Estimated kg CO₂e/year":r["total_kg_co2e"]} for r in comparable])
+            fig=px.line(history,x="Saved",y="Estimated kg CO₂e/year",markers=True,hover_data={"Estimate ID":True,"Estimated kg CO₂e/year":":,.1f"},color_discrete_sequence=["#d6ff4f"])
+            fig.update_layout(template="plotly_dark",margin=dict(t=15,b=0,l=0,r=0),paper_bgcolor="rgba(0,0,0,0)",plot_bgcolor="rgba(0,0,0,0)",height=330)
+            st.plotly_chart(fig,use_container_width=True,config={"displayModeBar":False})
+
+            options=[r["record_id"] for r in comparable]
+            labels={r["record_id"]:f"{r['created_at']} · #{r['record_id']} · {r['total_kg_co2e']:,.1f} kg" for r in comparable}
+            earlier_col,later_col=st.columns(2)
+            earlier_id=earlier_col.selectbox("Earlier estimate",options,index=len(options)-2,format_func=lambda value:labels[value],key=f"progress_compare_earlier_{st.session_state.user_id}")
+            later_id=later_col.selectbox("Later estimate",options,index=len(options)-1,format_func=lambda value:labels[value],key=f"progress_compare_later_{st.session_state.user_id}")
+            older=next(record for record in comparable if record["record_id"]==earlier_id)
+            newer=next(record for record in comparable if record["record_id"]==later_id)
+            if older["record_id"]==newer["record_id"]:
+                st.warning("Choose two different saved estimates to compare.")
+            else:
+                difference=float(newer["total_kg_co2e"])-float(older["total_kg_co2e"])
+                delta=f"{difference:+,.1f} kg CO₂e/year"
+                if float(older["total_kg_co2e"])>0:
+                    delta+=f" · {difference/float(older['total_kg_co2e']):+.1%}"
+                st.metric("Later estimate",f"{newer['total_kg_co2e']:,.1f} kg CO₂e/year",delta=delta,delta_color="off")
+                st.caption(f"From {older['created_at']} to {newer['created_at']}. This is a change between estimates, not proof that emissions changed by the same amount in real life.")
+                category_names=sorted(set(older["category_breakdown"])|set(newer["category_breakdown"]))
+                category_changes=pd.DataFrame([{"Category":name,"Earlier kg CO₂e/year":older["category_breakdown"].get(name,0),"Later kg CO₂e/year":newer["category_breakdown"].get(name,0),"Change kg CO₂e/year":newer["category_breakdown"].get(name,0)-older["category_breakdown"].get(name,0)} for name in category_names])
+                st.dataframe(category_changes,hide_index=True,use_container_width=True)
+        elif len(comparable)==1:
+            st.info("There is one estimate in the current comparison group. Save another estimate with the same factor set and reported categories to create a trend.")
         else:
-            st.info("Save at least two estimates with the same factor set to see a trend. Estimates use the activity fields shown on Carbon footprint.")
-    else:
-        history=pd.DataFrame([{"Saved":f"{r['created_at']} · #{r['record_id']}","Estimated kg CO₂e/year":r["total_kg_co2e"]} for r in comparable])
-        fig=px.line(history,x="Saved",y="Estimated kg CO₂e/year",markers=True,color_discrete_sequence=["#278253"])
-        fig.update_layout(margin=dict(t=15,b=0,l=0,r=0),paper_bgcolor="rgba(0,0,0,0)",plot_bgcolor="rgba(0,0,0,0)",height=300)
-        st.plotly_chart(fig,use_container_width=True)
-        if len(comparable)<len(records): st.caption(f"Showing {len(comparable)} compatible estimates using factor set {current_version}; other records use different or unavailable input metadata.")
+            st.info("No two estimates share the latest estimate’s factor set, input format, and reported emissions categories, so a reliable trend cannot be shown yet.")
+
+        st.markdown("#### Estimate compatibility")
+        st.caption("Comparisons use the latest saved estimate as the reference. A record is comparable only when its emission factors, input format, and reported categories match.")
+        compatibility=[]
+        for record in records:
+            reason=_incompatibility_reason(record,reference)
+            if record["record_id"]==reference["record_id"]:
+                status="Reference estimate"
+            elif not reason:
+                status="Comparable"
+            else:
+                status="Not compared: "+reason
+            coverage=_input_coverage(record)
+            scope=", ".join(EMISSION_INPUT_LABELS[name] for name in coverage) if coverage else "No emissions categories reported"
+            compatibility.append({"Saved":record["created_at"],"Estimate ID":record["record_id"],"Total kg CO₂e/year":record["total_kg_co2e"],"Factor set":record["factor_version"],"Reported categories":scope,"Comparison":status})
+        st.dataframe(compatibility,hide_index=True,use_container_width=True)
+
+        incompatible=[record for record in records if record["record_id"]!=reference["record_id"] and _incompatibility_reason(record,reference)]
+        if incompatible:
+            with st.expander(f"Why {len(incompatible)} estimate(s) were excluded"):
+                for record in incompatible:
+                    st.markdown(f"- **{record['created_at']} · #{record['record_id']}** — {_incompatibility_reason(record,reference)}.")
+                st.caption("Different factor versions may use different emission values or boundaries. Different reported categories change what the total covers. Older records without saved input details cannot be checked.")
+        st.caption("Water and waste are resource indicators and remain outside the CO₂e total. A lower estimate is not, by itself, proof of a verified emissions reduction.")
