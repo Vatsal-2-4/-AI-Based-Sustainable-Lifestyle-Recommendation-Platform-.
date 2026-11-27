@@ -3,10 +3,10 @@ from database.repository import create_user, authenticate_user
 from frontend.styles import DEFAULT_PROFILE
 
 def render():
-    st.title("Create your account" if not st.session_state.authenticated else "Welcome back")
+    st.title("Create your account" if not st.session_state.authenticated else "Your account")
     st.caption("Your sustainable living companion for everyday decisions.")
     left,right=st.columns([1.1,1])
-    with left: st.markdown('<div class="hero"><div class="eyebrow" style="color:#c7ebd2">WELCOME TO EVERGREEN</div><h1>Better habits start with a clearer picture.</h1><p>Your footprint and recommendations, shaped around your lifestyle.</p></div>',unsafe_allow_html=True)
+    with left: st.markdown('<div class="hero"><div class="eyebrow">Evergreen account</div><h1>Better habits start with a clearer picture.</h1><p>Your profile, footprint and practical next actions in one place.</p></div>',unsafe_allow_html=True)
     with right:
         mode=st.radio("Account",["Sign in","Create account"],horizontal=True)
         with st.form("account_form"):

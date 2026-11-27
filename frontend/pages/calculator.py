@@ -40,24 +40,24 @@ def _go_to_recommendations():
     st.session_state.nav="Recommendations"
 
 def render():
-    st.markdown("""<section class="calc-hero"><div class="calc-kicker">EVERGREEN · PERSONAL IMPACT</div><h1>Make your everyday<br>impact visible.</h1><p>Adjust a few familiar habits and explore a transparent estimate of your annual footprint. Your results update as you go.</p></section>""",unsafe_allow_html=True)
+    st.markdown("""<section class="calc-hero"><div class="calc-kicker">Personal impact</div><h1>Make your everyday<br>impact visible.</h1><p>Adjust a few familiar habits and explore a transparent estimate of your annual footprint. Your results update as you go.</p></section>""",unsafe_allow_html=True)
     profile=st.session_state.get("profile",{})
     prefix=_prepare_input_state(st.session_state.user_id,profile)
     st.markdown("<div class='calc-content'></div>",unsafe_allow_html=True)
     left,right=st.columns([1.05,.95],gap="large")
     with left:
-        st.markdown("<div class='calc-section-label'><span>✳</span> Quick estimate</div><p style='margin:.45rem 0 1rem;color:#aebaa6;font-size:.82rem'>Start with monthly fuel and electricity. The estimate updates as you type.</p>",unsafe_allow_html=True)
+        st.markdown("<div class='calc-section-label'>Quick estimate</div><p style='margin:.45rem 0 1rem;color:#a1a1a6;font-size:13px'>Start with monthly fuel and electricity. The estimate updates as you type.</p>",unsafe_allow_html=True)
         st.caption("Use one month's bill and a typical month of fuel. Example: 120 kWh and 8 litres. Saved values are prefilled when available; no commute or diet amounts are guessed.")
         with st.container(border=True):
-            st.markdown("**🚗 Transport · monthly fuel for your own vehicle**")
+            st.markdown("**Transport · monthly fuel for your own vehicle**")
             a,b=st.columns(2)
             with a: petrol=st.number_input("Petrol · litres/month",min_value=0.0,max_value=1000.0,step=1.0,key=prefix+"petrol",help="Example: about 8 litres in a typical month.")
             with b: diesel=st.number_input("Diesel · litres/month",min_value=0.0,max_value=1000.0,step=1.0,key=prefix+"diesel",help="Example: about 12 litres in a typical month.")
-            st.markdown("**⚡ Home · electricity from your bill**")
+            st.markdown("**Home · electricity from your bill**")
             electricity=st.number_input("Electricity · kWh/month",min_value=0.0,max_value=100000.0,step=10.0,key=prefix+"electricity",help="Use one month's kWh from your bill. Your saved profile value is prefilled when available.")
         st.info("Food, water, and waste values from a previous saved estimate stay included and can be reviewed in the details below. If no saved amounts exist, they are left unreported; none are guessed from your lifestyle profile.")
         with st.expander("Add detail to your estimate · food, water & waste",expanded=False):
-            detail_tab,food_tab,waste_tab=st.tabs(["⌂  Water","🥗  Food","♻  Waste"])
+            detail_tab,food_tab,waste_tab=st.tabs(["Water","Food","Waste"])
             with detail_tab:
                 st.caption("Water is reported as a volume only. No locally matched household emissions factor is applied.")
                 water=st.number_input("Water · litres/person/day",min_value=0.0,max_value=5000.0,step=10.0,key=prefix+"water",help="Example: divide a household meter estimate by the number of residents.")
@@ -101,7 +101,7 @@ def render():
     if sum(waste.values())<=0: missing_indicators.append("Waste amounts (kg per week)")
     with right:
         st.markdown(f"<div class='calc-live'><div class='calc-live-label'>Estimated annual footprint</div><div class='calc-live-value'>{result['total_kg_co2e']:,.0f}<span style='font:500 1rem system-ui;color:#e5eddd'> kg CO₂e</span></div><div class='calc-live-note'>{result['total_kg_co2e']/1000:.2f} tonnes/year · updates with your inputs</div></div>",unsafe_allow_html=True)
-        st.markdown(f"<div style='height:12px'></div><div class='calc-mini'><div class='calc-mini-label'>ESTIMATE SCOPE</div><div class='calc-mini-value'>Partial · {result['factor_version']}</div></div>",unsafe_allow_html=True)
+        st.markdown(f"<div style='height:12px'></div><div class='calc-mini'><div class='calc-mini-label'>Estimate scope</div><div class='calc-mini-value'>Partial · {result['factor_version']}</div></div>",unsafe_allow_html=True)
         if missing_emissions or missing_indicators:
             with st.expander(f"Input check · {len(missing_emissions)+len(missing_indicators)} values unreported",expanded=bool(missing_emissions)):
                 if missing_emissions:
@@ -115,18 +115,17 @@ def render():
         st.markdown("<div style='height:14px'></div><div class='calc-section-label'>Where your estimate comes from</div>",unsafe_allow_html=True)
         emissions=pd.DataFrame([{"Category":k,"kg CO₂e/year":v} for k,v in result["category_kg_co2e"].items() if v>0])
         if not emissions.empty:
-            fig=px.pie(emissions,names="Category",values="kg CO₂e/year",hole=.68,color_discrete_sequence=["#d6ff4f","#79bd73","#4c8659"])
-            fig.update_traces(textposition="outside",textinfo="label+percent",marker=dict(line=dict(color="#1b211b",width=3)),hole=0.67)
-            fig.update_layout(showlegend=False,margin=dict(t=12,b=18,l=30,r=30),paper_bgcolor="rgba(0,0,0,0)",plot_bgcolor="rgba(0,0,0,0)",font=dict(family="DM Sans",color="#e5ebdf"),height=300,annotations=[dict(text="ANNUAL<br>CO₂e",x=.5,y=.5,showarrow=False,font=dict(size=13,color="#c6d0bd"))])
+            fig=px.pie(emissions,names="Category",values="kg CO₂e/year",hole=.68,color_discrete_sequence=["#a9bf8b","#74816b","#555c51"])
+            fig.update_traces(textposition="outside",textinfo="label+percent",marker=dict(line=dict(color="#19191b",width=3)),hole=0.67)
+            fig.update_layout(showlegend=False,margin=dict(t=12,b=18,l=30,r=30),paper_bgcolor="rgba(0,0,0,0)",plot_bgcolor="rgba(0,0,0,0)",font=dict(family="Inter, system-ui, sans-serif",color="#d2d2d0"),height=300,annotations=[dict(text="Annual<br>CO₂e",x=.5,y=.5,showarrow=False,font=dict(size=13,color="#a1a1a6"))])
             st.plotly_chart(fig,use_container_width=True)
         else:
             st.warning("Enter your activity amounts to see category emissions.")
         cards=st.columns(3)
-        icons={"Transportation":"↗","Electricity":"ϟ","Food":"◌"}
         for col,(category,value) in zip(cards,result["category_kg_co2e"].items()):
             with col:
                 share=f"{value/result['total_kg_co2e']:.0%} share" if result["total_kg_co2e"] else "No activity"
-                st.markdown(f"<div class='calc-mini'><div class='calc-mini-label'>{icons.get(category,'✳')} &nbsp;{category.upper()}</div><div class='calc-mini-value'>{value:,.0f} kg</div><div class='calc-mini-label'>{share}</div></div>",unsafe_allow_html=True)
+                st.markdown(f"<div class='calc-mini'><div class='calc-mini-label'>{category}</div><div class='calc-mini-value'>{value:,.0f} kg</div><div class='calc-mini-label'>{share}</div></div>",unsafe_allow_html=True)
         if st.button("Save this estimate",type="primary",use_container_width=True):
             try:
                 snapshot={"schema_version":1,"transport":{"petrol_l_month":petrol,"diesel_l_month":diesel},"electricity_kwh_month":electricity,"water_l_person_day":water,"food_kg_week":food,"waste_kg_week":waste}
@@ -148,8 +147,8 @@ def render():
         annual_waste=pd.DataFrame([{"Waste stream":k.title(),"kg/year":v} for k,v in result["waste_kg_year"].items()])
         st.metric("Total waste entered",f"{sum(result['waste_kg_year'].values()):,.1f} kg/year")
         if annual_waste["kg/year"].sum()>0:
-            fig=px.bar(annual_waste,x="Waste stream",y="kg/year",color="Waste stream",color_discrete_sequence=["#278253","#8dbd99","#d7ad68"])
-            fig.update_layout(showlegend=False,margin=dict(t=8,b=8,l=0,r=0),paper_bgcolor="rgba(0,0,0,0)",plot_bgcolor="rgba(0,0,0,0)",height=260)
+            fig=px.bar(annual_waste,x="Waste stream",y="kg/year",color="Waste stream",color_discrete_sequence=["#a9bf8b","#74816b","#555c51"])
+            fig.update_layout(showlegend=False,margin=dict(t=8,b=8,l=0,r=0),paper_bgcolor="rgba(0,0,0,0)",plot_bgcolor="rgba(0,0,0,0)",font=dict(family="Inter, system-ui, sans-serif",color="#a1a1a6"),height=260)
             st.plotly_chart(fig,use_container_width=True)
         st.caption("Waste mass is tracked separately; emissions vary by material mix, collection, recycling, composting, and disposal site. No generic landfill factor is assumed.")
     with st.expander("Emission factors and sources"):

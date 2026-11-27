@@ -35,7 +35,7 @@ def _render_first_steps(records, goals, saved_actions):
         step_cols=st.columns(3)
         for index,(col,step) in enumerate(zip(step_cols,steps),1):
             with col:
-                state="✓ Complete" if step["done"] else f"STEP {index}"
+                state="Complete" if step["done"] else f"Step {index}"
                 st.markdown(f"**{state}**")
                 st.markdown(f"**{step['title']}**")
                 st.caption(step["done_label"] if step["done"] else step["detail"])
@@ -121,7 +121,7 @@ def _category_chart(breakdown,selected_category):
         for category,value in values.items()
     ])
     fig=px.bar(frame,x="Estimated kg CO₂e/year",y="Category",orientation="h",color="Category",
-               color_discrete_sequence=["#d6ff4f","#a4c766","#648a43"],
+               color_discrete_sequence=["#a9bf8b","#74816b","#555c51"],
                hover_data={"Share of included total":":.1%","Estimated kg CO₂e/year":":,.1f"})
     fig.update_layout(showlegend=False,template="plotly_dark",paper_bgcolor="rgba(0,0,0,0)",
                       plot_bgcolor="rgba(0,0,0,0)",margin=dict(t=12,b=8,l=0,r=12),height=300,
@@ -146,9 +146,8 @@ def _estimate_insights(records,selected):
 
 
 def render():
-    name=st.session_state.profile.get("name") or "there"
-    st.markdown("<div class='page-kicker'>EVERGREEN · YOUR OVERVIEW</div>",unsafe_allow_html=True)
-    st.title(f"Your sustainability dashboard, {name}")
+    st.markdown("<div class='page-kicker'>Your overview</div>",unsafe_allow_html=True)
+    st.title("Your sustainability dashboard")
     st.caption("A clear view of your saved estimates, habits, and next steps.")
     if st.session_state.get("dashboard_error"):
         st.error(st.session_state.pop("dashboard_error"))
@@ -175,10 +174,10 @@ def render():
     completed=sum(g["done"] for g in goals)
     done_ratio=(completed/len(goals)) if goals else 0
     summary=st.columns(4)
-    summary_data=[("LATEST ESTIMATE",f"{records[0]['total_kg_co2e']:,.0f} kg" if records else "Not calculated","Partial annual estimate" if records else "Start with activity you know"),
-                  ("ACTIVE GOALS",str(active),"Actions in progress"),
-                  ("PAUSED GOALS",str(paused),"Ready when you are"),
-                  ("GOAL COMPLETION",f"{done_ratio:.0%}" if goals else "—",f"{completed} of {len(goals)} goals completed" if goals else "Save an action to begin")]
+    summary_data=[("Latest estimate",f"{records[0]['total_kg_co2e']:,.0f} kg" if records else "Not calculated","Partial annual estimate" if records else "Start with activity you know"),
+                  ("Active goals",str(active),"Actions in progress"),
+                  ("Paused goals",str(paused),"Ready when you are"),
+                  ("Goal completion",f"{done_ratio:.0%}" if goals else "—",f"{completed} of {len(goals)} goals completed" if goals else "Save an action to begin")]
     for col,args in zip(summary,summary_data):
         with col: metric(*args)
 
@@ -197,7 +196,7 @@ def render():
                 st.button("Create your first estimate →",key="dash_empty_calculator",type="primary",on_click=_navigate,args=("Carbon footprint",))
             with right:
                 st.markdown("""
-                <div class="card dashboard-empty-card"><span class="tag">A SIMPLE FIRST STEP</span>
+                <div class="card dashboard-empty-card"><span class="tag">A simple first step</span>
                 <h3>Start with the details you have</h3>
                 <p>Fuel, electricity, and food are included when supported factors are available. Water and waste stay as separate resource indicators.</p></div>
                 """,unsafe_allow_html=True)
@@ -239,7 +238,7 @@ def render():
                     deltas=pd.DataFrame([{"Category":key,"Change in estimated kg CO₂e/year":breakdown[key]-previous_breakdown[key]} for key in common_categories])
                     if category!="All categories": deltas=deltas[deltas["Category"]==category]
                     delta_fig=px.bar(deltas,x="Change in estimated kg CO₂e/year",y="Category",orientation="h",color="Category",
-                                     color_discrete_sequence=["#d6ff4f","#a4c766","#648a43"])
+                                     color_discrete_sequence=["#a9bf8b","#74816b","#555c51"])
                     delta_fig.update_layout(showlegend=False,template="plotly_dark",paper_bgcolor="rgba(0,0,0,0)",
                                             plot_bgcolor="rgba(0,0,0,0)",margin=dict(t=8,b=8,l=0,r=10),height=220)
                     st.plotly_chart(delta_fig,use_container_width=True,config={"displayModeBar":False})
@@ -301,7 +300,7 @@ def render():
             with chart_col:
                 if not goal_summary.empty:
                     fig=px.pie(goal_summary,names="Status",values="Goals",hole=.62,
-                               color="Status",color_discrete_map={"Active":"#d6ff4f","Paused":"#8c9a79","Completed":"#6b9b51"})
+                               color="Status",color_discrete_map={"Active":"#a9bf8b","Paused":"#74816b","Completed":"#555c51"})
                     fig.update_layout(template="plotly_dark",paper_bgcolor="rgba(0,0,0,0)",font_color="#f1f4ea",
                                       margin=dict(t=5,b=5,l=5,r=5),height=260,legend_title_text="")
                     st.plotly_chart(fig,use_container_width=True,config={"displayModeBar":False})
@@ -341,7 +340,7 @@ def render():
             compatible=compatible[-view_count:]
             if len(compatible)>=2:
                 frame=pd.DataFrame([{"Saved":f"{r['created_at']} · #{r['record_id']}","Estimated kg CO₂e/year":r["total_kg_co2e"]} for r in compatible])
-                fig=px.line(frame,x="Saved",y="Estimated kg CO₂e/year",markers=True,color_discrete_sequence=["#d6ff4f"],
+                fig=px.line(frame,x="Saved",y="Estimated kg CO₂e/year",markers=True,color_discrete_sequence=["#a9bf8b"],
                             hover_data={"Estimated kg CO₂e/year":":,.1f"})
                 fig.update_layout(template="plotly_dark",paper_bgcolor="rgba(0,0,0,0)",plot_bgcolor="rgba(0,0,0,0)",
                                   margin=dict(t=15,b=0,l=0,r=0),height=340)

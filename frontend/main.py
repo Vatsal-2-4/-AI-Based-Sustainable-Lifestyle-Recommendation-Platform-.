@@ -38,8 +38,8 @@ def run_app():
     if st.session_state.page=="Home":
         st.markdown("<style>[data-testid='stSidebar']{display:none!important}[data-testid='stHeader']{background:transparent!important}</style>",unsafe_allow_html=True)
     with st.sidebar:
-        st.markdown('<div class="brand">🌿 evergreen<span>.</span></div>', unsafe_allow_html=True)
-        st.caption("SUSTAINABLE LIVING PLATFORM")
+        st.markdown('<div class="brand">evergreen<span>.</span></div>', unsafe_allow_html=True)
+        st.caption("Sustainable living platform")
         pages = list(PAGES)
         current = st.session_state.get("page", "Dashboard")
         if current not in PAGES:
@@ -48,7 +48,7 @@ def run_app():
         page = st.radio("Navigation", pages, label_visibility="collapsed", key="nav", **nav_options)
         st.session_state.page = page
         st.divider()
-        st.caption("ACCOUNT" if st.session_state.authenticated else "DEMO PROFILE")
+        st.caption("Account" if st.session_state.authenticated else "Demo profile")
         st.markdown(f"**{st.session_state.profile['name']}**")
         st.caption(f"{st.session_state.profile['city']}, India")
         if st.session_state.authenticated:

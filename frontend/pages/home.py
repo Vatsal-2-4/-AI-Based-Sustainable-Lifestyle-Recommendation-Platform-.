@@ -55,7 +55,7 @@ def _hero_cards(uid):
         )
         estimate_card=("<div class='evergreen-glass impact-glass'><div class='glass-heading'><div><h3>Footprint snapshot</h3><p>Saved "+html.escape(str(record["created_at"]))+" · partial estimate</p></div><a class='tiny-arrow' href='"+html.escape(_route("Dashboard"),quote=True)+"' aria-label='Explore dashboard'>↗</a></div>"+bars+"<div class='glass-foot'>"+f"<strong>{float(record['total_kg_co2e']):,.0f} kg CO₂e</strong>"+"<span>· factor set "+html.escape(str(record["factor_version"]))+"</span></div></div>")
     else:
-        estimate_card=("<div class='evergreen-glass impact-glass'><div class='glass-heading'><div><h3>Your footprint snapshot</h3><p>Your saved estimate will appear here</p></div><a class='tiny-arrow' href='"+html.escape(_route("Carbon footprint"),quote=True)+"' aria-label='Calculate footprint'>↗</a></div><div class='empty-snapshot'><span class='snapshot-orbit'>✳</span><span>Start with activity you know. We will show what is included.</span></div></div>")
+        estimate_card=("<div class='evergreen-glass impact-glass'><div class='glass-heading'><div><h3>Your footprint snapshot</h3><p>Your saved estimate will appear here</p></div><a class='tiny-arrow' href='"+html.escape(_route("Carbon footprint"),quote=True)+"' aria-label='Calculate footprint'>↗</a></div><div class='empty-snapshot'><span class='snapshot-orbit' aria-hidden='true'></span><span>Start with activity you know. We will show what is included.</span></div></div>")
 
     quick_card=("<div class='evergreen-glass quick-glass'><div class='glass-heading'><div><h3>Your next steps</h3><p>Small, practical moves</p></div><span class='step-count'>"+str(min(total_goals,99))+" goals</span></div><div class='quick-links'>"
         "<a href='"+html.escape(_route("Questionnaire"),quote=True)+"' aria-label='Open lifestyle profile'><span>01</span><b>Profile</b></a>"
@@ -75,7 +75,7 @@ def render():
     cards=_hero_cards(st.session_state.user_id)
     hero=(
         "<section class='evergreen-landing' style='--hero-image:url(\""+hero_image+"\")'>"
-        "<header class='evergreen-nav'><a class='evergreen-brand' href='"+html.escape(_route("Home"),quote=True)+"'><b>✳</b>evergreen</a>"
+        "<header class='evergreen-nav'><a class='evergreen-brand' href='"+html.escape(_route("Home"),quote=True)+"'><b aria-hidden='true'></b>evergreen</a>"
         "<nav class='evergreen-menu' aria-label='Main navigation'>"
         "<a class='menu-current' href='"+html.escape(_route("Home"),quote=True)+"'>Home</a>"
         "<a href='#journey'>About</a>"
@@ -94,7 +94,7 @@ def render():
         "</section>"
     )
     st.markdown(hero,unsafe_allow_html=True)
-    st.markdown("<div id='journey' class='journey-intro'><span>THE EVERGREEN APPROACH</span><h2>From everyday habits<br>to a next step that fits.</h2><p>Explore the profile, estimate, and action tools. Each is designed to be transparent about what it can—and cannot—tell you.</p></div>",unsafe_allow_html=True)
+    st.markdown("<div id='journey' class='journey-intro'><span>A clear, practical approach</span><h2>From everyday habits<br>to a next step that fits.</h2><p>Explore the profile, estimate, and action tools. Each is designed to be transparent about what it can—and cannot—tell you.</p></div>",unsafe_allow_html=True)
     a,b,c=st.columns(3)
     cards=[("01","Know your footprint","Review selected emissions categories with their factors and assumptions.","Open calculator","Carbon footprint"),
            ("02","Find your next step","Explore actions ranked against the habits and constraints you shared.","Explore actions","Recommendations"),
