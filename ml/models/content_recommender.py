@@ -9,6 +9,14 @@ from sklearn.metrics.pairwise import cosine_similarity
 CATALOGUE_PATH = Path(__file__).resolve().parents[2] / "dataset" / "actions.csv"
 REQUIRED_COLUMNS = {"action_id","category","title","description","match_terms","eligibility","impact_tier","cost_tier","difficulty","source_name","source_url"}
 IMPACT_ORDER = {"low": 1, "medium": 2, "high": 3}
+SUPPORTED_ELIGIBILITY = {
+    "public_transport_available", "short_trip_suitable", "uses_private_vehicle",
+    "any_home", "planning_appliance_purchase", "uses_air_conditioner", "uses_electronics",
+    "any_diet", "has_non_plant_based_meals", "food_waste_reported", "composting_possible", "has_outdoor_cleaning",
+    "has_plants", "planning_fixture_replacement", "segregation_service_available",
+    "shops_in_person", "refill_access", "has_e_waste", "buys_durable_goods",
+    "frequent_shopping", "planning_purchase", "has_reusable_items", "any_shopping",
+}
 
 def preprocess_text(value):
     """Normalize text consistently for profile and catalogue documents."""
@@ -22,6 +30,9 @@ def load_catalogue(path=CATALOGUE_PATH):
     missing = REQUIRED_COLUMNS.difference(frame.columns)
     if missing:
         raise ValueError(f"Action catalogue missing columns: {', '.join(sorted(missing))}")
+    unknown_eligibility = set(frame["eligibility"].astype(str).str.strip()) - SUPPORTED_ELIGIBILITY
+    if unknown_eligibility:
+        raise ValueError(f"Unsupported action eligibility rule(s): {', '.join(sorted(unknown_eligibility))}")
     frame["difficulty"] = pd.to_numeric(frame["difficulty"], errors="raise")
     if frame["action_id"].duplicated().any():
         raise ValueError("Action IDs must be unique")
@@ -65,6 +76,8 @@ def _profile_document(profile):
 
 def _eligible(row, profile):
     condition=str(row["eligibility"])
+    if condition not in SUPPORTED_ELIGIBILITY:
+        raise ValueError(f"Unsupported action eligibility rule: {condition}")
     commute=preprocess_text(profile.get("commute", profile.get("commute_mode", "")))
     diet=preprocess_text(profile.get("diet", profile.get("diet_pattern", "")))
     water=preprocess_text(profile.get("water_usage", ""))
@@ -73,7 +86,10 @@ def _eligible(row, profile):
     if condition == "public_transport_available" and profile.get("public_transport_available") is False: return False
     if condition == "short_trip_suitable" and profile.get("short_trips_suitable") is False: return False
     if condition == "uses_private_vehicle" and not any(term in commute for term in ("car","petrol","diesel","two wheeler","scooter","motorcycle")): return False
-    if condition == "uses_air_conditioner" and profile.get("ac",profile.get("ac_usage")) in (None,"Rarely","Never"): return False
+    if condition == "uses_air_conditioner" and profile.get("ac",profile.get("ac_usage")) in ("Rarely","Never"): return False
+    if condition == "planning_appliance_purchase" and profile.get("planning_appliance_purchase") is False: return False
+    if condition == "uses_electronics" and profile.get("uses_electronics") is False: return False
+    if condition == "has_outdoor_cleaning" and profile.get("has_outdoor_cleaning") is False: return False
     if condition == "has_plants" and profile.get("has_plants") is False: return False
     if condition == "planning_fixture_replacement" and profile.get("planning_fixture_replacement") is False: return False
     if condition == "has_non_plant_based_meals" and diet in {"vegan","vegetarian"}: return False

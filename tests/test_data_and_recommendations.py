@@ -7,7 +7,7 @@ from pathlib import Path
 import database.connection as connection
 from backend.services.footprint_service import calculate_footprint
 from database import repository
-from ml.models.content_recommender import recommend
+from ml.models.content_recommender import load_catalogue, recommend
 
 
 class IsolatedDatabaseTests(unittest.TestCase):
@@ -129,6 +129,30 @@ class RecommendationUnitTests(unittest.TestCase):
         action_ids={action["action_id"] for action in actions}
         self.assertNotIn("TR01",action_ids)
         self.assertNotIn("FO01",action_ids)
+
+    def test_carpool_action_requires_a_private_vehicle_commute(self):
+        car_actions={action["action_id"] for action in recommend(self._profile(),top_n=30)}
+        walking_profile=self._profile(commute="Walk or cycle",commute_km=3,commute_days=5)
+        walking_actions={action["action_id"] for action in recommend(walking_profile,top_n=30)}
+        self.assertIn("TR03",car_actions)
+        self.assertNotIn("TR03",walking_actions)
+
+    def test_explicitly_unavailable_features_filter_actions(self):
+        profile=self._profile(
+            planning_appliance_purchase=False,
+            uses_electronics=False,
+            has_outdoor_cleaning=False,
+        )
+        action_ids={action["action_id"] for action in recommend(profile,top_n=30)}
+        self.assertNotIn("EL03",action_ids)
+        self.assertNotIn("EL05",action_ids)
+        self.assertNotIn("WA03",action_ids)
+
+    def test_unknown_catalogue_eligibility_rule_fails_loudly(self):
+        catalogue=load_catalogue()
+        catalogue.loc[catalogue["action_id"]=="TR03","eligibility"]="has_regular_commute"
+        with self.assertRaisesRegex(ValueError,"Unsupported action eligibility rule"):
+            recommend(self._profile(),top_n=30,catalogue=catalogue)
 
 
 class FootprintInputUnitTests(unittest.TestCase):

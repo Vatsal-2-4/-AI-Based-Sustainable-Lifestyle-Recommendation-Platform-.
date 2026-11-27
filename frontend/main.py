@@ -44,7 +44,8 @@ def run_app():
         current = st.session_state.get("page", "Dashboard")
         if current not in PAGES:
             current = "Dashboard"
-        page = st.radio("Navigation", pages, index=pages.index(current), label_visibility="collapsed", key="nav")
+        nav_options = {"index": pages.index(current)} if "nav" not in st.session_state else {}
+        page = st.radio("Navigation", pages, label_visibility="collapsed", key="nav", **nav_options)
         st.session_state.page = page
         st.divider()
         st.caption("ACCOUNT" if st.session_state.authenticated else "DEMO PROFILE")
