@@ -83,7 +83,7 @@ def render():
         "<a href='"+html.escape(_route("Recommendations"),quote=True)+"'>Actions</a>"
         "<a href='"+html.escape(_route("Profile"),quote=True)+"'>Profile</a>"
         "<a href='"+html.escape(_route("Login / Register"),quote=True)+"'>Account</a></nav>"
-        "<a class='evergreen-start' href='"+html.escape(_route(destination),quote=True)+"'>Start now <span>↗</span></a></header>"
+        "<a class='evergreen-start' href='"+html.escape(_route("Login / Register"),quote=True)+"'>Start now <span>↗</span></a></header>"
         "<div class='evergreen-copy'><div class='evergreen-eyebrow'>Understand your impact · Choose what comes next</div>"
         "<h1>Live lighter,<br><em>leave more green.</em></h1>"
         "<p>A clearer picture of your everyday footprint, with practical actions shaped around your routine.</p>"
@@ -101,6 +101,6 @@ def render():
            ("03","Build a lasting habit","Save an action as a goal and record your progress over time.","View progress","Progress tracking")]
     for col,(number,title,description,label,page) in zip((a,b,c),cards):
         with col:
-            st.markdown(f"<div class='journey-card'><span>{number}</span><h3>{title}</h3><p>{description}</p></div>",unsafe_allow_html=True)
+            st.markdown(f"<div class='journey-card journey-{number}'><span>{number}</span><h3>{title}</h3><p>{description}</p></div>",unsafe_allow_html=True)
             st.button(label,key=f"landing_{page}",icon="↗",use_container_width=True,on_click=_navigate,args=(page,))
     st.caption("Academic prototype · Local SQLite storage · No verified action-savings or sustainability score is claimed.")

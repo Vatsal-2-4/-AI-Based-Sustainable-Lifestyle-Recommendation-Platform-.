@@ -121,11 +121,12 @@ def _category_chart(breakdown,selected_category):
         for category,value in values.items()
     ])
     fig=px.bar(frame,x="Estimated kg CO₂e/year",y="Category",orientation="h",color="Category",
-               color_discrete_sequence=["#a9bf8b","#74816b","#555c51"],
+               color_discrete_map={"Transportation":"#397b4e","Electricity":"#9aa83f","Food":"#c58245"},
                hover_data={"Share of included total":":.1%","Estimated kg CO₂e/year":":,.1f"})
-    fig.update_layout(showlegend=False,template="plotly_dark",paper_bgcolor="rgba(0,0,0,0)",
+    fig.update_layout(showlegend=False,template="plotly_white",paper_bgcolor="rgba(0,0,0,0)",
                       plot_bgcolor="rgba(0,0,0,0)",margin=dict(t=12,b=8,l=0,r=12),height=300,
-                      xaxis_title="Estimated kg CO₂e per year",yaxis_title="")
+                      font_color="#56645a",xaxis_title="Estimated kg CO₂e per year",yaxis_title="",
+                      xaxis=dict(showgrid=True,gridcolor="#e3e9e1",zerolinecolor="#d4ddd2"),yaxis=dict(showgrid=False))
     st.plotly_chart(fig,use_container_width=True,config={"displayModeBar":False})
 
 
@@ -178,8 +179,9 @@ def render():
                   ("Active goals",str(active),"Actions in progress"),
                   ("Paused goals",str(paused),"Ready when you are"),
                   ("Goal completion",f"{done_ratio:.0%}" if goals else "—",f"{completed} of {len(goals)} goals completed" if goals else "Save an action to begin")]
-    for col,args in zip(summary,summary_data):
-        with col: metric(*args)
+    variants=("forest","leaf","water","sun")
+    for col,args,variant in zip(summary,summary_data,variants):
+        with col: metric(*args,variant=variant)
 
     quick_cols=st.columns(3)
     quick_cols[0].button("Update my profile",key="dash_profile",on_click=_navigate,args=("Questionnaire",),use_container_width=True)
@@ -238,9 +240,10 @@ def render():
                     deltas=pd.DataFrame([{"Category":key,"Change in estimated kg CO₂e/year":breakdown[key]-previous_breakdown[key]} for key in common_categories])
                     if category!="All categories": deltas=deltas[deltas["Category"]==category]
                     delta_fig=px.bar(deltas,x="Change in estimated kg CO₂e/year",y="Category",orientation="h",color="Category",
-                                     color_discrete_sequence=["#a9bf8b","#74816b","#555c51"])
-                    delta_fig.update_layout(showlegend=False,template="plotly_dark",paper_bgcolor="rgba(0,0,0,0)",
-                                            plot_bgcolor="rgba(0,0,0,0)",margin=dict(t=8,b=8,l=0,r=10),height=220)
+                                     color_discrete_map={"Transportation":"#397b4e","Electricity":"#9aa83f","Food":"#c58245"})
+                    delta_fig.update_layout(showlegend=False,template="plotly_white",paper_bgcolor="rgba(0,0,0,0)",
+                                            plot_bgcolor="rgba(0,0,0,0)",font_color="#56645a",margin=dict(t=8,b=8,l=0,r=10),height=220,
+                                            xaxis=dict(showgrid=True,gridcolor="#e3e9e1"),yaxis=dict(showgrid=False))
                     st.plotly_chart(delta_fig,use_container_width=True,config={"displayModeBar":False})
 
         st.divider()
@@ -300,8 +303,8 @@ def render():
             with chart_col:
                 if not goal_summary.empty:
                     fig=px.pie(goal_summary,names="Status",values="Goals",hole=.62,
-                               color="Status",color_discrete_map={"Active":"#a9bf8b","Paused":"#74816b","Completed":"#555c51"})
-                    fig.update_layout(template="plotly_dark",paper_bgcolor="rgba(0,0,0,0)",font_color="#f1f4ea",
+                               color="Status",color_discrete_map={"Active":"#397b4e","Paused":"#d39a48","Completed":"#5b9a95"})
+                    fig.update_layout(template="plotly_white",paper_bgcolor="rgba(0,0,0,0)",font_color="#56645a",
                                       margin=dict(t=5,b=5,l=5,r=5),height=260,legend_title_text="")
                     st.plotly_chart(fig,use_container_width=True,config={"displayModeBar":False})
             st.subheader("Update a goal")
@@ -340,10 +343,11 @@ def render():
             compatible=compatible[-view_count:]
             if len(compatible)>=2:
                 frame=pd.DataFrame([{"Saved":f"{r['created_at']} · #{r['record_id']}","Estimated kg CO₂e/year":r["total_kg_co2e"]} for r in compatible])
-                fig=px.line(frame,x="Saved",y="Estimated kg CO₂e/year",markers=True,color_discrete_sequence=["#a9bf8b"],
+                fig=px.line(frame,x="Saved",y="Estimated kg CO₂e/year",markers=True,color_discrete_sequence=["#397b4e"],
                             hover_data={"Estimated kg CO₂e/year":":,.1f"})
-                fig.update_layout(template="plotly_dark",paper_bgcolor="rgba(0,0,0,0)",plot_bgcolor="rgba(0,0,0,0)",
-                                  margin=dict(t=15,b=0,l=0,r=0),height=340)
+                fig.update_layout(template="plotly_white",paper_bgcolor="rgba(0,0,0,0)",plot_bgcolor="rgba(0,0,0,0)",
+                                  font_color="#56645a",margin=dict(t=15,b=0,l=0,r=0),height=340,
+                                  xaxis=dict(showgrid=False),yaxis=dict(showgrid=True,gridcolor="#e3e9e1"))
                 st.plotly_chart(fig,use_container_width=True,config={"displayModeBar":False})
                 if len(compatible)<len(matching):
                     st.caption("Only estimates with saved input details are charted. Older records remain listed below.")

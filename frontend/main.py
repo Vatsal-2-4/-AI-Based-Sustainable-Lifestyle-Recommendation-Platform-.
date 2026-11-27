@@ -2,6 +2,7 @@ import streamlit as st
 import logging
 from frontend.styles import load_styles, initialize_state, DEFAULT_PROFILE
 from frontend.pages import home, dashboard, calculator, recommendations, progress, questionnaire, profile, auth
+from database.schema import initialize_database
 
 PAGES = {
     "Home": home.render,
@@ -14,9 +15,16 @@ PAGES = {
     "Login / Register": auth.render,
 }
 
+@st.cache_resource
+def _initialize_database_once():
+    """Create or migrate the local schema once per Streamlit process."""
+    initialize_database()
+
+
 def run_app():
     load_styles()
     try:
+        _initialize_database_once()
         initialize_state()
     except Exception:
         logging.exception("Could not initialize the application state or local database")

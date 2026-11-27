@@ -14,6 +14,7 @@ class ApplicationSmokeTests(unittest.TestCase):
         self.temp_dir = tempfile.TemporaryDirectory()
         self.original_db_path = connection.DB_PATH
         connection.DB_PATH = Path(self.temp_dir.name) / "smoke.sqlite3"
+        initialize_database()
         self.user_id = repository.create_user("smoke@example.test", "Smoke User", "a secure password 123")
 
     def tearDown(self):

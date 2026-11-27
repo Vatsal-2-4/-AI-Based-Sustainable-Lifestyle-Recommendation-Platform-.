@@ -62,11 +62,12 @@ def render():
         return
     for index,action in enumerate(actions,1):
         with st.container(border=True):
+            category_class={"Transportation":"transport","Electricity":"energy","Water":"water","Food":"food","Waste":"waste","Shopping":"shopping"}.get(action["category"],"other")
             saved_goal=next((g for g in st.session_state.goals if g.get("action_key")==action["action_id"] or g["title"]==action["title"]),None)
             already_added=saved_goal is not None
             left,right=st.columns([5,1])
             with left:
-                st.markdown(f"<span class='tag'>#{index} · {action['category']} · {action['impact_tier'].title()} impact tier</span>",unsafe_allow_html=True)
+                st.markdown(f"<span class='tag tag-{category_class}'>#{index} · {action['category']} · {action['impact_tier'].title()} impact tier</span>",unsafe_allow_html=True)
                 st.subheader(action["title"])
                 st.write(action["description"])
                 st.caption("Why it matched: " + "; ".join(action["matched_habits"]))

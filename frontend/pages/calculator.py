@@ -115,17 +115,20 @@ def render():
         st.markdown("<div style='height:14px'></div><div class='calc-section-label'>Where your estimate comes from</div>",unsafe_allow_html=True)
         emissions=pd.DataFrame([{"Category":k,"kg CO₂e/year":v} for k,v in result["category_kg_co2e"].items() if v>0])
         if not emissions.empty:
-            fig=px.pie(emissions,names="Category",values="kg CO₂e/year",hole=.68,color_discrete_sequence=["#a9bf8b","#74816b","#555c51"])
-            fig.update_traces(textposition="outside",textinfo="label+percent",marker=dict(line=dict(color="#19191b",width=3)),hole=0.67)
-            fig.update_layout(showlegend=False,margin=dict(t=12,b=18,l=30,r=30),paper_bgcolor="rgba(0,0,0,0)",plot_bgcolor="rgba(0,0,0,0)",font=dict(family="Inter, system-ui, sans-serif",color="#d2d2d0"),height=300,annotations=[dict(text="Annual<br>CO₂e",x=.5,y=.5,showarrow=False,font=dict(size=13,color="#a1a1a6"))])
+            fig=px.pie(emissions,names="Category",values="kg CO₂e/year",hole=.68,color="Category",
+                       color_discrete_map={"Transportation":"#397b4e","Electricity":"#9aa83f","Food":"#c58245"})
+            fig.update_traces(textposition="outside",textinfo="label+percent",marker=dict(line=dict(color="#fffefa",width=3)),hole=0.67)
+            fig.update_layout(showlegend=False,margin=dict(t=12,b=18,l=30,r=30),paper_bgcolor="rgba(0,0,0,0)",plot_bgcolor="rgba(0,0,0,0)",font=dict(family="Inter, system-ui, sans-serif",color="#56645a"),height=300,annotations=[dict(text="Annual<br>CO₂e",x=.5,y=.5,showarrow=False,font=dict(size=13,color="#6b786e"))])
             st.plotly_chart(fig,use_container_width=True)
         else:
             st.warning("Enter your activity amounts to see category emissions.")
         cards=st.columns(3)
+        category_classes={"Transportation":"transport","Electricity":"energy","Food":"food"}
         for col,(category,value) in zip(cards,result["category_kg_co2e"].items()):
             with col:
                 share=f"{value/result['total_kg_co2e']:.0%} share" if result["total_kg_co2e"] else "No activity"
-                st.markdown(f"<div class='calc-mini'><div class='calc-mini-label'>{category}</div><div class='calc-mini-value'>{value:,.0f} kg</div><div class='calc-mini-label'>{share}</div></div>",unsafe_allow_html=True)
+                color_class=category_classes.get(category,"transport")
+                st.markdown(f"<div class='calc-mini {color_class}'><div class='calc-mini-label'>{category}</div><div class='calc-mini-value'>{value:,.0f} kg</div><div class='calc-mini-label'>{share}</div></div>",unsafe_allow_html=True)
         if st.button("Save this estimate",type="primary",use_container_width=True):
             try:
                 snapshot={"schema_version":1,"transport":{"petrol_l_month":petrol,"diesel_l_month":diesel},"electricity_kwh_month":electricity,"water_l_person_day":water,"food_kg_week":food,"waste_kg_week":waste}
@@ -147,8 +150,8 @@ def render():
         annual_waste=pd.DataFrame([{"Waste stream":k.title(),"kg/year":v} for k,v in result["waste_kg_year"].items()])
         st.metric("Total waste entered",f"{sum(result['waste_kg_year'].values()):,.1f} kg/year")
         if annual_waste["kg/year"].sum()>0:
-            fig=px.bar(annual_waste,x="Waste stream",y="kg/year",color="Waste stream",color_discrete_sequence=["#a9bf8b","#74816b","#555c51"])
-            fig.update_layout(showlegend=False,margin=dict(t=8,b=8,l=0,r=0),paper_bgcolor="rgba(0,0,0,0)",plot_bgcolor="rgba(0,0,0,0)",font=dict(family="Inter, system-ui, sans-serif",color="#a1a1a6"),height=260)
+            fig=px.bar(annual_waste,x="Waste stream",y="kg/year",color="Waste stream",color_discrete_sequence=["#397b4e","#5b9a95","#c58245"])
+            fig.update_layout(showlegend=False,template="plotly_white",margin=dict(t=8,b=8,l=0,r=0),paper_bgcolor="rgba(0,0,0,0)",plot_bgcolor="rgba(0,0,0,0)",font=dict(family="Inter, system-ui, sans-serif",color="#56645a"),height=260)
             st.plotly_chart(fig,use_container_width=True)
         st.caption("Waste mass is tracked separately; emissions vary by material mix, collection, recycling, composting, and disposal site. No generic landfill factor is assumed.")
     with st.expander("Emission factors and sources"):

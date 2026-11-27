@@ -8,10 +8,7 @@ import math
 import tempfile
 from pathlib import Path
 from database.connection import get_connection
-from database.schema import initialize_database, SCHEMA
-
-def _ready():
-    initialize_database()
+from database.schema import SCHEMA
 
 def _valid_text(value, name, limit=240):
     if not isinstance(value, str) or not value.strip() or len(value.strip()) > limit:
@@ -32,7 +29,6 @@ def _password_digest(password, salt):
     return hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), bytes.fromhex(salt), 600_000).hex()
 
 def create_user(email, display_name, password=None):
-    _ready()
     email = _valid_text(email, "Email", 254).lower()
     if "@" not in email or "." not in email.rsplit("@", 1)[-1]:
         raise ValueError("Email address is invalid")
@@ -49,7 +45,6 @@ def create_user(email, display_name, password=None):
         raise ValueError("A user with that email already exists") from exc
 
 def authenticate_user(email, password):
-    _ready()
     email = _valid_text(email, "Email", 254).lower()
     with get_connection() as db:
         row = db.execute("SELECT user_id,email,display_name,password_salt,password_hash FROM users WHERE email=?", (email,)).fetchone()
@@ -62,7 +57,6 @@ def authenticate_user(email, password):
     return {"user_id":row["user_id"],"email":row["email"],"display_name":row["display_name"]}
 
 def get_or_create_user(email="demo@example.local", display_name="Demo User"):
-    _ready()
     email = _valid_text(email, "Email", 254).lower()
     with get_connection() as db:
         row = db.execute("SELECT user_id FROM users WHERE email=?", (email,)).fetchone()
@@ -72,20 +66,17 @@ def get_or_create_user(email="demo@example.local", display_name="Demo User"):
         return cursor.lastrowid
 
 def get_user(user_id):
-    _ready()
     with get_connection() as db:
         row = db.execute("SELECT user_id,email,display_name,created_at,updated_at FROM users WHERE user_id=?", (int(user_id),)).fetchone()
         return dict(row) if row else None
 
 def get_user_by_email(email):
-    _ready()
     email = _valid_text(email, "Email", 254).lower()
     with get_connection() as db:
         row = db.execute("SELECT user_id,email,display_name,created_at,updated_at FROM users WHERE email=?", (email,)).fetchone()
         return dict(row) if row else None
 
 def update_user(user_id, *, email=None, display_name=None):
-    _ready()
     fields, values = [], []
     if email is not None:
         email = _valid_text(email, "Email", 254).lower()
@@ -103,7 +94,6 @@ def update_user(user_id, *, email=None, display_name=None):
         raise ValueError("Email is already in use") from exc
 
 def save_lifestyle_response(user_id, response):
-    _ready()
     required = ("city","commute_mode","commute_km_day","commute_days_week","diet_pattern","housing_type","monthly_budget_inr","electricity_kwh_month","ac_usage","waste_segregation")
     missing = [key for key in required if key not in response]
     if missing: raise ValueError("Missing questionnaire fields: " + ", ".join(missing))
@@ -126,14 +116,12 @@ def save_lifestyle_response(user_id, response):
         return cursor.lastrowid
 
 def get_latest_lifestyle_response(user_id):
-    _ready()
     with get_connection() as db:
         row = db.execute("SELECT * FROM lifestyle_questionnaire_responses WHERE user_id=? ORDER BY response_id DESC LIMIT 1", (int(user_id),)).fetchone()
         if not row: return None
         result = dict(row); result["preferences"] = json.loads(result.pop("preferences_json")); return result
 
 def create_footprint_record(user_id, total_kg_co2e, category_breakdown, *, response_id=None, factor_version="demo-v1", is_estimate=True, input_snapshot=None):
-    _ready()
     total = _number(total_kg_co2e, "Total footprint")
     if not isinstance(category_breakdown, dict) or not category_breakdown: raise ValueError("Category breakdown must be a non-empty object")
     breakdown = {str(k): _number(v, f"{k} footprint") for k,v in category_breakdown.items()}
@@ -150,7 +138,7 @@ def create_footprint_record(user_id, total_kg_co2e, category_breakdown, *, respo
         return cur.lastrowid
 
 def get_footprint_records(user_id, limit=20):
-    _ready(); limit = int(_number(limit,"Limit",1,500))
+    limit = int(_number(limit,"Limit",1,500))
     with get_connection() as db:
         rows = db.execute("SELECT * FROM carbon_footprint_records WHERE user_id=? ORDER BY record_id DESC LIMIT ?", (int(user_id),limit)).fetchall()
         result=[]
@@ -160,7 +148,6 @@ def get_footprint_records(user_id, limit=20):
 
 def export_user_data(user_id):
     """Return user-owned records as a JSON-serializable export bundle."""
-    _ready()
     with get_connection() as db:
         user=db.execute("SELECT email,display_name,created_at FROM users WHERE user_id=?",(int(user_id),)).fetchone()
         if not user: raise ValueError("Account not found")
@@ -183,7 +170,6 @@ def export_user_data(user_id):
 
 def backup_user_database(user_id):
     """Create a portable SQLite backup containing only this user's records."""
-    _ready()
     tables=(
         ("users","SELECT user_id,email,display_name,created_at,updated_at FROM users WHERE user_id=?"),
         ("lifestyle_questionnaire_responses","SELECT * FROM lifestyle_questionnaire_responses WHERE user_id=? ORDER BY response_id"),
@@ -213,7 +199,6 @@ def backup_user_database(user_id):
 
 def reset_demo_data(user_id):
     """Clear records for the built-in demo profile while retaining the demo account."""
-    _ready()
     with get_connection() as db:
         user=db.execute("SELECT email FROM users WHERE user_id=?",(int(user_id),)).fetchone()
         if not user or user["email"].lower()!="demo@example.local":
@@ -226,13 +211,11 @@ def reset_demo_data(user_id):
 
 def delete_user(user_id):
     """Delete a user's profile and linked application records."""
-    _ready()
     with get_connection() as db:
         cursor=db.execute("DELETE FROM users WHERE user_id=?",(int(user_id),))
         if cursor.rowcount==0: raise ValueError("Account not found")
 
 def save_recommendation(user_id, recommendation, record_id=None):
-    _ready()
     fields={"action_key":_valid_text(recommendation["action_key"],"Action key",100),"category":_valid_text(recommendation["category"],"Category",80),"title":_valid_text(recommendation["title"],"Title",240),"explanation":str(recommendation.get("explanation", "")),"saving":_number(recommendation.get("estimated_saving_kg_co2e",0),"Estimated saving"),"cost":recommendation.get("estimated_cost_inr"),"difficulty":int(_number(recommendation.get("difficulty",1),"Difficulty",1,5)),"score":_number(recommendation.get("relevance_score",0),"Relevance score",0,1),"rank":int(_number(recommendation.get("rank_position",1),"Rank",1))}
     if fields["cost"] is not None: fields["cost"]=_number(fields["cost"],"Estimated cost")
     with get_connection() as db:
@@ -250,19 +233,18 @@ def save_recommendation(user_id, recommendation, record_id=None):
         return row["recommendation_id"]
 
 def get_recommendations(user_id, limit=100):
-    _ready(); limit=int(_number(limit,"Limit",1,500))
+    limit=int(_number(limit,"Limit",1,500))
     with get_connection() as db:
         return [dict(r) for r in db.execute("SELECT * FROM ai_recommendations WHERE user_id=? ORDER BY created_at DESC,rank_position LIMIT ?",(int(user_id),limit)).fetchall()]
 
 def update_recommendation_status(user_id, recommendation_id, status):
-    _ready()
     if status not in {"suggested","saved","dismissed"}: raise ValueError("Invalid recommendation status")
     with get_connection() as db:
         cur=db.execute("UPDATE ai_recommendations SET status=? WHERE recommendation_id=? AND user_id=?",(status,int(recommendation_id),int(user_id)))
         if cur.rowcount==0: raise ValueError("Recommendation not found")
 
 def create_progress(user_id, title, category, recommendation_id=None):
-    _ready(); title=_valid_text(title,"Goal title",240); category=_valid_text(category,"Category",80)
+    title=_valid_text(title,"Goal title",240); category=_valid_text(category,"Category",80)
     with get_connection() as db:
         if recommendation_id is not None:
             own=db.execute("SELECT 1 FROM ai_recommendations WHERE recommendation_id=? AND user_id=?",(int(recommendation_id),int(user_id))).fetchone()
@@ -271,14 +253,13 @@ def create_progress(user_id, title, category, recommendation_id=None):
         return cur.lastrowid
 
 def get_progress(user_id):
-    _ready()
     with get_connection() as db:
         return [dict(r) for r in db.execute("""SELECT p.*,r.action_key,r.explanation AS recommendation_explanation
           FROM user_progress p LEFT JOIN ai_recommendations r ON r.recommendation_id=p.recommendation_id AND r.user_id=p.user_id
           WHERE p.user_id=? ORDER BY p.status='completed',p.updated_at DESC,p.progress_id DESC""",(int(user_id),)).fetchall()]
 
 def update_progress(user_id, progress_id, *, progress_percent=None, status=None, notes=None):
-    _ready(); fields=[]; values=[]
+    fields=[]; values=[]
     if progress_percent is not None:
         progress_value=_number(progress_percent,"Progress",0,100)
         if not progress_value.is_integer(): raise ValueError("Progress must be a whole number")
@@ -295,7 +276,6 @@ def update_progress(user_id, progress_id, *, progress_percent=None, status=None,
         if cur.rowcount==0: raise ValueError("Progress goal not found")
 
 def delete_progress(user_id, progress_id):
-    _ready()
     with get_connection() as db:
         cur=db.execute("DELETE FROM user_progress WHERE progress_id=? AND user_id=?",(int(progress_id),int(user_id)))
         if cur.rowcount==0: raise ValueError("Progress goal not found")

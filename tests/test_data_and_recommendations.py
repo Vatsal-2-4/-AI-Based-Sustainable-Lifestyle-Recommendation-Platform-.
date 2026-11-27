@@ -7,6 +7,7 @@ from pathlib import Path
 import database.connection as connection
 from backend.services.footprint_service import calculate_footprint
 from database import repository
+from database.schema import initialize_database
 from ml.models.content_recommender import load_catalogue, recommend
 
 
@@ -15,6 +16,7 @@ class IsolatedDatabaseTests(unittest.TestCase):
         self.temp_dir=tempfile.TemporaryDirectory()
         self.original_db_path=connection.DB_PATH
         connection.DB_PATH=Path(self.temp_dir.name)/"unit-tests.sqlite3"
+        initialize_database()
 
     def tearDown(self):
         connection.DB_PATH=self.original_db_path
