@@ -121,12 +121,12 @@ def _category_chart(breakdown,selected_category):
         for category,value in values.items()
     ])
     fig=px.bar(frame,x="Estimated kg CO₂e/year",y="Category",orientation="h",color="Category",
-               color_discrete_map={"Transportation":"#397b4e","Electricity":"#9aa83f","Food":"#c58245"},
+               color_discrete_map={"Transportation":"#68ef3f","Electricity":"#c9e75c","Food":"#e3ab58"},
                hover_data={"Share of included total":":.1%","Estimated kg CO₂e/year":":,.1f"})
-    fig.update_layout(showlegend=False,template="plotly_white",paper_bgcolor="rgba(0,0,0,0)",
+    fig.update_layout(showlegend=False,template="plotly_dark",paper_bgcolor="rgba(0,0,0,0)",
                       plot_bgcolor="rgba(0,0,0,0)",margin=dict(t=12,b=8,l=0,r=12),height=300,
-                      font_color="#56645a",xaxis_title="Estimated kg CO₂e per year",yaxis_title="",
-                      xaxis=dict(showgrid=True,gridcolor="#e3e9e1",zerolinecolor="#d4ddd2"),yaxis=dict(showgrid=False))
+                      font_color="#d7dfd0",xaxis_title="Estimated kg CO₂e per year",yaxis_title="",
+                      xaxis=dict(showgrid=True,gridcolor="rgba(242,245,235,.12)",zerolinecolor="rgba(242,245,235,.25)"),yaxis=dict(showgrid=False))
     st.plotly_chart(fig,use_container_width=True,config={"displayModeBar":False})
 
 
@@ -240,10 +240,10 @@ def render():
                     deltas=pd.DataFrame([{"Category":key,"Change in estimated kg CO₂e/year":breakdown[key]-previous_breakdown[key]} for key in common_categories])
                     if category!="All categories": deltas=deltas[deltas["Category"]==category]
                     delta_fig=px.bar(deltas,x="Change in estimated kg CO₂e/year",y="Category",orientation="h",color="Category",
-                                     color_discrete_map={"Transportation":"#397b4e","Electricity":"#9aa83f","Food":"#c58245"})
-                    delta_fig.update_layout(showlegend=False,template="plotly_white",paper_bgcolor="rgba(0,0,0,0)",
-                                            plot_bgcolor="rgba(0,0,0,0)",font_color="#56645a",margin=dict(t=8,b=8,l=0,r=10),height=220,
-                                            xaxis=dict(showgrid=True,gridcolor="#e3e9e1"),yaxis=dict(showgrid=False))
+                                     color_discrete_map={"Transportation":"#68ef3f","Electricity":"#c9e75c","Food":"#e3ab58"})
+                    delta_fig.update_layout(showlegend=False,template="plotly_dark",paper_bgcolor="rgba(0,0,0,0)",
+                                            plot_bgcolor="rgba(0,0,0,0)",font_color="#d7dfd0",margin=dict(t=8,b=8,l=0,r=10),height=220,
+                                            xaxis=dict(showgrid=True,gridcolor="rgba(242,245,235,.12)"),yaxis=dict(showgrid=False))
                     st.plotly_chart(delta_fig,use_container_width=True,config={"displayModeBar":False})
 
         st.divider()
@@ -303,8 +303,8 @@ def render():
             with chart_col:
                 if not goal_summary.empty:
                     fig=px.pie(goal_summary,names="Status",values="Goals",hole=.62,
-                               color="Status",color_discrete_map={"Active":"#397b4e","Paused":"#d39a48","Completed":"#5b9a95"})
-                    fig.update_layout(template="plotly_white",paper_bgcolor="rgba(0,0,0,0)",font_color="#56645a",
+                               color="Status",color_discrete_map={"Active":"#68ef3f","Paused":"#e3ab58","Completed":"#62c7a7"})
+                    fig.update_layout(template="plotly_dark",paper_bgcolor="rgba(0,0,0,0)",font_color="#d7dfd0",
                                       margin=dict(t=5,b=5,l=5,r=5),height=260,legend_title_text="")
                     st.plotly_chart(fig,use_container_width=True,config={"displayModeBar":False})
             st.subheader("Update a goal")
@@ -343,11 +343,11 @@ def render():
             compatible=compatible[-view_count:]
             if len(compatible)>=2:
                 frame=pd.DataFrame([{"Saved":f"{r['created_at']} · #{r['record_id']}","Estimated kg CO₂e/year":r["total_kg_co2e"]} for r in compatible])
-                fig=px.line(frame,x="Saved",y="Estimated kg CO₂e/year",markers=True,color_discrete_sequence=["#397b4e"],
+                fig=px.line(frame,x="Saved",y="Estimated kg CO₂e/year",markers=True,color_discrete_sequence=["#68ef3f"],
                             hover_data={"Estimated kg CO₂e/year":":,.1f"})
-                fig.update_layout(template="plotly_white",paper_bgcolor="rgba(0,0,0,0)",plot_bgcolor="rgba(0,0,0,0)",
-                                  font_color="#56645a",margin=dict(t=15,b=0,l=0,r=0),height=340,
-                                  xaxis=dict(showgrid=False),yaxis=dict(showgrid=True,gridcolor="#e3e9e1"))
+                fig.update_layout(template="plotly_dark",paper_bgcolor="rgba(0,0,0,0)",plot_bgcolor="rgba(0,0,0,0)",
+                                  font_color="#d7dfd0",margin=dict(t=15,b=0,l=0,r=0),height=340,
+                                  xaxis=dict(showgrid=False),yaxis=dict(showgrid=True,gridcolor="rgba(242,245,235,.12)"))
                 st.plotly_chart(fig,use_container_width=True,config={"displayModeBar":False})
                 if len(compatible)<len(matching):
                     st.caption("Only estimates with saved input details are charted. Older records remain listed below.")

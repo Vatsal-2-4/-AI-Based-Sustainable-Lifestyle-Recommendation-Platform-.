@@ -152,9 +152,9 @@ def render():
             st.markdown("#### Trend in compatible annualized estimates")
             st.caption(f"All points use factor set **{reference['factor_version']}**, the same saved-input format, and the same reported emissions categories. Values are annual estimates calculated from monthly fuel/electricity and weekly food inputs; dates show when each estimate was saved, not emissions measured during that calendar period.")
             history=pd.DataFrame([{"Saved":pd.to_datetime(r["created_at"]),"Estimate ID":r["record_id"],"Estimated kg CO₂e/year":r["total_kg_co2e"]} for r in comparable])
-            fig=px.line(history,x="Saved",y="Estimated kg CO₂e/year",markers=True,hover_data={"Estimate ID":True,"Estimated kg CO₂e/year":":,.1f"},color_discrete_sequence=["#397b4e"])
-            fig.update_layout(template="plotly_white",font_color="#56645a",margin=dict(t=15,b=0,l=0,r=0),paper_bgcolor="rgba(0,0,0,0)",plot_bgcolor="rgba(0,0,0,0)",height=330,
-                              xaxis=dict(showgrid=False),yaxis=dict(showgrid=True,gridcolor="#e3e9e1"))
+            fig=px.line(history,x="Saved",y="Estimated kg CO₂e/year",markers=True,hover_data={"Estimate ID":True,"Estimated kg CO₂e/year":":,.1f"},color_discrete_sequence=["#68ef3f"])
+            fig.update_layout(template="plotly_dark",font_color="#d7dfd0",margin=dict(t=15,b=0,l=0,r=0),paper_bgcolor="rgba(0,0,0,0)",plot_bgcolor="rgba(0,0,0,0)",height=330,
+                              xaxis=dict(showgrid=False),yaxis=dict(showgrid=True,gridcolor="rgba(242,245,235,.12)"))
             st.plotly_chart(fig,use_container_width=True,config={"displayModeBar":False})
 
             options=[r["record_id"] for r in comparable]
